@@ -145,10 +145,17 @@ h2 { font-family: var(--display); font-size: 28px; letter-spacing: -.02em; font-
 .btn.primary { background: var(--accent); color: var(--on-accent); }
 
 /* ---------- weeks ---------- */
-details.week { border-top: 1px solid var(--sep); }
-details.week:first-child { border-top: 0; }
+details.week, details.fold { border-top: 1px solid var(--sep); }
+details.week:first-child, details.fold:first-child { border-top: 0; }
 details.week > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 64px minmax(0,1fr) auto 14px; gap: 12px; align-items: center; padding: 14px 16px; }
-details.week > summary::-webkit-details-marker { display: none; }
+details.week > summary::-webkit-details-marker, details.fold > summary::-webkit-details-marker { display: none; }
+/* LEARN: <details> + <summary> is a built-in dropdown: no JavaScript needed to open and close it. */
+details.fold > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0,1fr) auto 14px; gap: 12px; align-items: center; padding: 14px 16px; }
+details.fold > summary .ft { font-weight: 500; }
+details.fold > summary .fw { font-size: 13.5px; color: var(--ink-3); }
+details.fold .fbody { border-top: 1px solid var(--sep); }
+details.fold .frow:first-child { border-top: 0; }
+details.fold .scroll-x { overflow-x: auto; }
 .wn { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .wt { font-weight: 500; min-width: 0; }
 .wc { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
@@ -282,17 +289,13 @@ footer p { margin: 0 0 6px; }
   <section aria-labelledby="formulas-h" id="formulas">
     <h2 id="formulas-h">Formula sheet</h2>
     <p class="sub">Everything from the 12 weeks on one page. It covers the same mechanics as the <a href="https://apcentral.collegeboard.org/media/pdf/ap-physics-c-mechanics-equations-sheet.pdf">AP Physics C: Mechanics equation sheet</a>, written to match this course's notation.</p>
-    <div class="fgrid" id="fsheet"></div>
-    <div class="label" style="margin-top:28px">Constants</div>
-    <div class="group" id="consts"></div>
-    <div class="label" style="margin-top:28px">Also on the AP Physics C sheet (8.01 notes, Ch. 23–25)</div>
-    <div class="group" id="fextra"></div>
+    <div class="group" id="fsheet"></div>
   </section>
 
   <section aria-labelledby="key-h" id="key">
     <h2 id="key-h">Symbol key</h2>
     <p class="sub">What each letter means and its SI unit. Arrows mark vectors; the same letter without an arrow is its magnitude.</p>
-    <div class="group scroll-x" id="symbols"></div>
+    <div class="group" id="symbols"></div>
   </section>
 
   <section aria-labelledby="proj-h">
@@ -605,13 +608,16 @@ footer p { margin: 0 0 6px; }
 
   function renderFormulas() {
     function row(r) { return '<div class="frow"><div class="eq">' + tex(r[0]) + '</div><small>' + esc(r[1]) + '</small></div>'; }
-    var F = window.FORMULAS || [], half = Math.ceil(F.length / 2);
-    function col(groups) { return '<div>' + groups.map(function (g) { return '<div class="group" style="margin-bottom:16px"><div class="fhead"><h3>' + esc(g.t) + '</h3><span>' + esc(g.w) + '</span></div>' + g.rows.map(row).join("") + '</div>'; }).join("") + '</div>'; }
-    $("fsheet").innerHTML = col(F.slice(0, half)) + col(F.slice(half));
-    $("consts").innerHTML = (window.CONSTANTS || []).map(row).join("");
-    $("fextra").innerHTML = (window.FORMULAS_EXTRA || []).map(row).join("");
-    $("symbols").innerHTML = '<table class="keytable"><thead><tr><th>Symbol</th><th>Meaning</th><th>SI unit</th></tr></thead><tbody>' +
-      (window.SYMBOLS || []).map(function (s) { return '<tr><td>' + tex(s[0]) + '</td><td>' + esc(s[1]) + '</td><td>' + esc(s[2]) + '</td></tr>'; }).join("") + '</tbody></table>';
+    function fold(title, aside, inner) {
+      return '<details class="fold"><summary><span class="ft">' + esc(title) + '</span><span class="fw">' + esc(aside) + '</span>' + CHEV + '</summary><div class="fbody">' + inner + '</div></details>';
+    }
+    var groups = (window.FORMULAS || []).map(function (g) { return fold(g.t, g.w, g.rows.map(row).join("")); });
+    groups.push(fold("Constants", "", (window.CONSTANTS || []).map(row).join("")));
+    groups.push(fold("Also on the AP Physics C sheet", "Ch. 23–25", (window.FORMULAS_EXTRA || []).map(row).join("")));
+    $("fsheet").innerHTML = groups.join("");
+    var S = window.SYMBOLS || [];
+    $("symbols").innerHTML = fold("All symbols", S.length + " entries", '<div class="scroll-x"><table class="keytable"><thead><tr><th>Symbol</th><th>Meaning</th><th>SI unit</th></tr></thead><tbody>' +
+      S.map(function (s) { return '<tr><td>' + tex(s[0]) + '</td><td>' + esc(s[1]) + '</td><td>' + esc(s[2]) + '</td></tr>'; }).join("") + '</tbody></table></div>');
   }
 
   // LEARN: every link to another site opens in a new tab, so this page stays open.
