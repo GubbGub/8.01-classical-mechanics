@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<!--
+  8.01 · Classical Mechanics
+  ==========================
+  My self-paced run through MIT OpenCourseWare 8.01SC (Fall 2016), plus the projects I build from it.
+
+  FILES
+  index.html      layout, styling and behavior (this file)
+  course-data.js  every lesson, reading and problem set, generated from the OCW download
+  progress.js     what I've finished. The public site reads this file.
+  projects.js     the sims and projects listed on the page
+  publish.sh      commits progress.js (and anything else changed) and pushes it
+
+  HOW UPDATING WORKS
+  Visitors see a read-only page built from progress.js.
+  On my MacBook I open the page with ?edit at the end of the address once. That turns on edit mode
+  in that browser: checkboxes work, and a red bar appears when there are changes the site doesn't
+  have yet. "Save progress.js" writes the file into this folder; ./publish.sh pushes it.
+
+  Search for "LEARN:" to jump between the explanations.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>8.01 Tracker · Jared Bridgewater</title>
+  <meta name="description" content="Where I am in MIT OCW 8.01SC Classical Mechanics, and the simulations I build from it.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <!-- LEARN: runs before the page draws so it never flashes the wrong theme. Same key as my logbook. -->
+  <script>
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem("theme"); } catch (e) {}
+      var dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    })();
+  </script>
+  <style>
+/* Layout concept: one narrow column, like a lab notebook. Where I am leads, projects follow, then the 13 units as collapsible cards.
+   LEARN: same token setup as my logbook's style.css, with MIT red as the accent. */
+:root {
+  --canvas: #F4F4F6;
+  --surface: #FFFFFF;
+  --ink: #1A1A1D;
+  --ink-2: #55555B;
+  --ink-3: #8A8B8C;          /* MIT silver gray */
+  --line: #E4E4E8;
+  --grid: rgba(26,26,29,.05);
+  --accent: #A31F34;         /* MIT red */
+  --accent-ink: #FFFFFF;
+  --accent-soft: rgba(163,31,52,.07);
+  --good: #248A3D;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 18px;
+  --page: 860px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #0B0B0C; --surface: #18181A; --ink: #F4F4F6; --ink-2: #A6A6AB; --ink-3: #75757B;
+    --line: #2A2A2D; --grid: rgba(255,255,255,.045); --accent: #FF5C70; --accent-ink: #1A0006;
+    --accent-soft: rgba(255,92,112,.12); --good: #30D158; --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --canvas: #0B0B0C; --surface: #18181A; --ink: #F4F4F6; --ink-2: #A6A6AB; --ink-3: #75757B;
+  --line: #2A2A2D; --grid: rgba(255,255,255,.045); --accent: #FF5C70; --accent-ink: #1A0006;
+  --accent-soft: rgba(255,92,112,.12); --good: #30D158; --shadow: none; color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--canvas); color: var(--ink);
+  font-family: var(--sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, select:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px;
+}
+.wrap {
+  width: 100%; max-width: var(--page); margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.tag { font-family: var(--mono); font-size: 12px; letter-spacing: .05em; color: var(--ink-3); text-transform: uppercase; }
+.tag::before { content: "["; } .tag::after { content: "]"; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- Top bar ---------- */
+.bar { border-bottom: 1px solid var(--line); background: var(--canvas); }
+.bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px; }
+.brand { font-weight: 700; letter-spacing: -.01em; color: var(--ink); display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.brand .back { font-weight: 400; font-size: 14px; color: var(--ink-3); }
+.bar-right { display: flex; align-items: center; gap: 10px; }
+.sync { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.sync.ok::before { background: var(--good); }
+/* LEARN: the toggle shows the mode you'd switch TO, so the label always says what clicking does. */
+.theme-toggle { font: inherit; font-size: 13px; font-weight: 500; background: var(--surface); border: 1px solid var(--line); color: var(--ink); border-radius: 999px; height: 34px; padding: 0 12px 0 10px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.theme-toggle:hover { border-color: var(--ink-3); }
+.theme-toggle svg { width: 15px; height: 15px; }
+:root[data-theme="dark"] .theme-toggle .to-dark, :root:not([data-theme="dark"]) .theme-toggle .to-light { display: none; }
+.mode { font-family: var(--mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 8px; }
+
+/* ---------- Hero ---------- */
+.hero { padding-block: 40px 8px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+.hero h1 { font-size: clamp(34px, 6vw, 54px); line-height: 1.02; letter-spacing: -.035em; margin: 10px 0 12px; text-wrap: balance; }
+.hero h1 .code { color: var(--accent); font-family: var(--mono); font-weight: 600; letter-spacing: -.04em; display: block; font-size: .62em; margin-bottom: 4px; }
+.hero p { margin: 0; color: var(--ink-2); max-width: 46ch; }
+.traj { width: 260px; max-width: 100%; height: auto; display: block; }
+.traj .ax { stroke: var(--ink-3); stroke-width: 1; }
+.traj .path { stroke: var(--ink-3); stroke-dasharray: 3 4; fill: none; }
+.traj .dot { fill: var(--ink); }
+.traj .vec { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+.traj .head { fill: var(--accent); }
+.traj text { font-family: var(--mono); font-size: 9px; fill: var(--ink-3); }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-top: 28px; }
+.stat { background: var(--surface); padding: 14px 16px; min-width: 0; }
+.stat b { display: block; font-family: var(--mono); font-size: 22px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12.5px; color: var(--ink-3); }
+
+/* ---------- Next up ---------- */
+section { padding-top: 36px; }
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.head h2 { font-size: 22px; letter-spacing: -.02em; margin: 0; }
+.head .aside { font-size: 14px; color: var(--ink-3); }
+
+.next { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.next-top { padding: 22px 24px 18px; border-top: 3px solid var(--accent); }
+.next-top .where { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
+.next-top h3 { font-size: 24px; letter-spacing: -.02em; margin: 6px 0 6px; text-wrap: balance; }
+.next-top .meta { color: var(--ink-2); font-size: 14px; }
+.next-list { list-style: none; margin: 0; padding: 0 24px; border-top: 1px solid var(--line); }
+.next-actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px 24px 20px; border-top: 1px solid var(--line); }
+.btn { font: inherit; font-size: 14px; font-weight: 600; border-radius: 999px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { text-decoration: none; border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.small { padding: 6px 12px; font-size: 13px; font-weight: 500; }
+.done-all { padding: 28px 24px; text-align: center; color: var(--ink-2); }
+
+/* Week pace */
+.pace { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.pace .label { font-size: 14px; }
+.pace .label small { display: block; color: var(--ink-3); font-size: 12.5px; }
+.meter { height: 6px; border-radius: 999px; background: var(--line); position: relative; overflow: hidden; min-width: 0; }
+.meter i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 999px; }
+.meter .band { position: absolute; top: 0; bottom: 0; background: var(--accent-soft); }
+
+/* ---------- Unit strip ---------- */
+.strip { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 4px; margin-bottom: 16px; }
+.strip a { display: block; text-decoration: none; }
+.strip .cell { height: 26px; border-radius: 6px; background: var(--line); position: relative; overflow: hidden; }
+.strip .cell i { position: absolute; inset: auto 0 0 0; background: var(--accent); }
+.strip .lbl { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); text-align: center; margin-top: 4px; }
+.strip a.current .lbl { color: var(--accent); font-weight: 700; }
+
+/* ---------- Units ---------- */
+.units { display: grid; gap: 10px; }
+details.unit { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+details.unit > summary { list-style: none; cursor: pointer; padding: 16px 20px; display: grid; grid-template-columns: 44px minmax(0,1fr) 120px; gap: 14px; align-items: center; }
+details.unit > summary::-webkit-details-marker { display: none; }
+.wk { font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
+.unit.complete .wk { color: var(--good); }
+.utitle { font-weight: 600; letter-spacing: -.01em; min-width: 0; }
+.usub { display: block; font-weight: 400; font-size: 13px; color: var(--ink-3); }
+.uprog { display: grid; gap: 6px; justify-items: end; }
+.uprog .num { font-size: 12px; color: var(--ink-3); }
+.uprog .meter { width: 100%; }
+.ubody { padding: 0 20px 20px; display: grid; gap: 18px; border-top: 1px solid var(--line); padding-top: 18px; }
+
+.sec h4 { margin: 0; font-size: 15px; letter-spacing: -.01em; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.sec h4 .k { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+.sec h4 .opt { font-size: 11.5px; font-weight: 500; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+.reading { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.reading a { white-space: nowrap; }
+.items { list-style: none; margin: 8px 0 0; padding: 0; }
+.item { display: grid; grid-template-columns: 22px minmax(0,1fr) auto auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.items .item:first-child { border-top: 0; }
+.next-list .item:first-child { border-top: 0; }
+.item input { width: 17px; height: 17px; accent-color: var(--accent); margin: 0; cursor: pointer; }
+.item input:disabled { cursor: default; opacity: 1; }
+.viewer .item label { cursor: default; }
+.item label { cursor: pointer; min-width: 0; }
+.item.is-done label { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line); }
+.item .dur { font-family: var(--mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.item .go { font-size: 13px; white-space: nowrap; }
+
+.idea { border-top: 1px dashed var(--line); padding-top: 14px; }
+.idea label { font-size: 13px; color: var(--ink-2); display: block; margin-bottom: 6px; }
+.idea label b { font-family: var(--mono); font-size: 11.5px; color: var(--accent); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-right: 6px; }
+textarea, select, input[type="text"] {
+  width: 100%; font: inherit; font-size: 14px; color: var(--ink); background: var(--canvas);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; resize: vertical;
+}
+textarea::placeholder { color: var(--ink-3); }
+
+/* ---------- Unpublished-changes banner (edit mode only) ---------- */
+.banner { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--accent); color: var(--accent-ink); }
+.banner .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; flex-wrap: wrap; font-size: 14px; }
+.banner .btn { background: var(--accent-ink); color: var(--accent); border-color: transparent; }
+
+/* ---------- Projects ---------- */
+.projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.proj { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 6px; align-content: start; min-width: 0; color: var(--ink); }
+a.proj:hover { text-decoration: none; border-color: var(--ink-3); }
+.proj img { border-radius: 10px; border: 1px solid var(--line); aspect-ratio: 16 / 9; object-fit: cover; width: 100%; margin-bottom: 6px; }
+.proj h3 { margin: 0; font-size: 16px; letter-spacing: -.01em; }
+.proj p { margin: 0; font-size: 14px; color: var(--ink-2); }
+.empty { border: 1px dashed var(--line); border-radius: 16px; padding: 22px; color: var(--ink-2); font-size: 14.5px; }
+.empty strong { color: var(--ink); }
+.idea-text { font-size: 14px; color: var(--ink-2); margin: 0; white-space: pre-wrap; }
+
+/* ---------- Settings / footer ---------- */
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; min-width: 0; }
+.panel h3 { margin: 0 0 4px; font-size: 15px; }
+.panel p { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.note { font-size: 13px; color: var(--ink-3); min-height: 1.2em; margin-top: 8px; }
+footer { padding-block: 40px 48px; font-size: 12.5px; color: var(--ink-3); }
+footer p { margin: 0 0 6px; max-width: 70ch; }
+
+@media (max-width: 640px) {
+  .hero { grid-template-columns: 1fr; padding-top: 28px; }
+  .traj { width: 200px; }
+  .stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .pace { grid-template-columns: 1fr; gap: 10px; }
+  details.unit > summary { grid-template-columns: 36px minmax(0,1fr) 64px; padding: 14px 16px; }
+  .ubody { padding-inline: 16px; }
+  .item { grid-template-columns: 22px minmax(0,1fr) auto; }
+  .item .dur { display: none; }
+  .strip .lbl { font-size: 9px; }
+  .brand .back { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<div class="banner" id="banner" hidden>
+  <div class="wrap">
+    <span id="banner-text">Changes the website doesn't have yet.</span>
+    <button class="btn small" type="button" id="save">Save progress.js</button>
+  </div>
+</div>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="https://gubbgub.github.io/">8.01 Tracker <span class="back">← Logbook</span></a>
+    <div class="bar-right">
+      <span class="mode" id="mode" hidden>Edit mode</span>
+      <button class="theme-toggle" type="button" id="theme">
+        <svg class="to-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="to-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span id="theme-label">Dark</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <!-- ===================== HERO ===================== -->
+    <div class="hero">
+      <div>
+        <span class="tag">Course 8 · Self-study</span>
+        <h1><span class="code">8.01SC</span>Classical Mechanics</h1>
+        <p>I'm working through MIT's intro physics course on OpenCourseWare, taught by Prof. Deepto Chakrabarty and Dr. Peter Dourmashkin. This page tracks where I am and collects the simulations I build along the way.</p>
+      </div>
+      <!-- LEARN: drawn by JavaScript (drawTrajectory). Dots are equal time steps; red arrows are the velocity vector. -->
+      <svg class="traj" id="traj" viewBox="0 0 260 170" role="img" aria-label="Projectile path with velocity vectors at equal time steps"></svg>
+    </div>
+
+    <div class="stats" id="stats" aria-live="polite"></div>
+
+    <!-- ===================== NEXT UP ===================== -->
+    <section aria-labelledby="next-h">
+      <div class="head"><h2 id="next-h">Currently working on</h2><span class="aside" id="next-aside">Self-paced, no due dates.</span></div>
+      <div class="next" id="next"></div>
+      <div class="pace" id="pace"></div>
+    </section>
+
+    <!-- ===================== PROJECTS ===================== -->
+    <section aria-labelledby="proj-h">
+      <div class="head"><h2 id="proj-h">Projects from the course</h2><span class="aside">Simulations and builds, listed in projects.js</span></div>
+      <div id="projects"></div>
+    </section>
+
+    <!-- ===================== COURSE MAP ===================== -->
+    <section aria-labelledby="map-h">
+      <div class="head"><h2 id="map-h">Course map</h2><span class="aside">Vectors review + 12 weeks</span></div>
+      <nav class="strip" id="strip" aria-label="Jump to a week"></nav>
+      <div class="units" id="units"></div>
+    </section>
+
+    <!-- ===================== SETTINGS (edit mode only) ===================== -->
+    <section aria-labelledby="set-h" id="settings" hidden>
+      <div class="head"><h2 id="set-h">Settings</h2><span class="aside">Only visible in edit mode</span></div>
+      <div class="settings">
+        <div class="panel">
+          <h3>Weekly target</h3>
+          <p>A soft goal for the last 7 days. Nothing turns red if you miss it.</p>
+          <select id="target" aria-label="Weekly target">
+            <option value="1">About 1 hour</option>
+            <option value="2">About 2 hours</option>
+            <option value="3">About 3 hours</option>
+            <option value="4">About 4 hours</option>
+          </select>
+        </div>
+        <div class="panel">
+          <h3>Publish</h3>
+          <p>Save progress.js into the repo folder, then run <code>./publish.sh</code> in Terminal.</p>
+          <div class="row">
+            <button class="btn small" type="button" id="save2">Save progress.js</button>
+            <button class="btn small" type="button" id="discard">Undo unsaved changes</button>
+          </div>
+          <div class="note" id="save-note" role="status"></div>
+        </div>
+        <div class="panel">
+          <h3>Edit mode</h3>
+          <p>Turn it off to see exactly what visitors see.</p>
+          <div class="row"><a class="btn small" href="?view">Leave edit mode</a></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Independent self-study. Not affiliated with or endorsed by MIT.</p>
+    <p>Course videos, notes and problem sets: <a href="https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/">MIT OpenCourseWare 8.01SC</a>, licensed CC BY-NC-SA 4.0. Code on <a href="https://github.com/GubbGub/8.01-classical-mechanics">GitHub</a>.</p>
+  </div>
+</footer>
+
+<script src="course-data.js"></script>
+<script src="progress.js"></script>
+<script src="projects.js"></script>
+<script>
+/* =================================================================
+   LEARN: THE PLAN
+   1. State is one small object: which items are done (and when), sim ideas, weekly target.
+   2. Everyone starts from progress.js, the copy that lives in the repo.
+   3. In edit mode, my clicks are kept in this browser (localStorage) until I save
+      a new progress.js and push it. Visitors never see edit controls.
+   4. render() redraws the page from state. Every click changes state, then re-renders.
+   ================================================================= */
+(function () {
+  var COURSE = window.COURSE || [];
+  var PROJECTS = window.PROJECTS || [];
+  var OCW = "https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/";
+  var KEY = "tracker801", EDIT_KEY = "tracker801-edit";
+  var IDEAS = [
+    "Vector decomposition: an arrow rotating while its x and y components grow and shrink.",
+    "Projectile with live velocity arrows, or the braking car's x(t), v(t), a(t) graphs drawn together.",
+    "Free-body diagram builder for blocks, ramps and pulleys.",
+    "Uniform circular motion with v and a vectors, then the banked turn.",
+    "Falling with drag: terminal velocity curves, low speed vs. high speed.",
+    "Bouncing ball impulse, or a thrown hammer whose center of mass follows a clean parabola.",
+    "Rocket equation: watch velocity climb as mass burns off.",
+    "Work as the area under F(x), filling in as the object moves.",
+    "Potential energy diagram with a ball rolling inside it, turning points marked.",
+    "Elastic collision shown in the lab frame and center-of-mass frame side by side.",
+    "Race down a ramp: hoop vs. disc vs. sphere, explained by moment of inertia.",
+    "Spinning skater pulling arms in: angular momentum conserved, ω jumps.",
+    "Cycloid traced by a point on a rolling wheel, or gyroscope precession."
+  ];
+
+  /* ---------- helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function mins(sec) { return Math.round(sec / 60); }
+  function fmtMin(m) { if (m < 60) return m + " min"; var h = Math.floor(m / 60), r = m % 60; return h + "h" + (r ? " " + r + "m" : ""); }
+  function fmtDur(sec) { if (!sec) return "text"; var m = Math.floor(sec / 60), s = sec % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
+  function unitLabel(u) { return "W" + u.n; }
+  function itemUrl(u, it, sec) { return sec.kind === "pset" ? OCW + "resources/" + sec.res + "/" : OCW + "pages/" + u.slug + "/" + it.id + "/"; }
+  function chapterUrl(n) { return OCW + "resources/mit8_01scs22_chapter" + n + "/"; }
+  // LEARN: items with no video (text pages, demos, pset problems) still take time. Rough guesses.
+  function itemMinutes(it, sec) { return sec.kind === "pset" ? 25 : (it.s ? Math.max(1, mins(it.s)) : 5); }
+  function secTitle(u, sec) {
+    if (sec.kind === "lesson") return (sec.n === 0 ? "Review" : "Lesson " + sec.n) + ": " + sec.title;
+    if (sec.kind === "deep") return "Deep dive: " + sec.title;
+    if (sec.kind === "pset") return sec.title;
+    if (sec.kind === "examples") return "Week " + u.n + " worked examples";
+    return "Week " + u.n + " introduction";
+  }
+
+  /* ---------- edit mode ----------
+     LEARN: "?edit" in the address turns edit mode on for this browser; "?view" turns it off.
+     Opening index.html straight from the folder (file://) is always edit mode. */
+  var q = location.search;
+  try {
+    if (/[?&]edit\b/.test(q)) localStorage.setItem(EDIT_KEY, "1");
+    if (/[?&]view\b/.test(q)) localStorage.removeItem(EDIT_KEY);
+  } catch (e) {}
+  var EDIT = location.protocol === "file:";
+  try { EDIT = EDIT || localStorage.getItem(EDIT_KEY) === "1"; } catch (e) {}
+  if (/[?&](edit|view)\b/.test(q)) history.replaceState(null, "", location.pathname + location.hash);
+
+  /* ---------- state ---------- */
+  function blank() { return { v: 1, done: {}, ideas: {}, target: 2, updated: 0 }; }
+  function clean(s) {
+    var b = blank();
+    if (!s || typeof s !== "object") return b;
+    if (s.done && typeof s.done === "object") b.done = Object.assign({}, s.done);
+    if (s.ideas && typeof s.ideas === "object") b.ideas = Object.assign({}, s.ideas);
+    if (typeof s.target === "number") b.target = s.target;
+    b.updated = s.updated || 0;
+    return b;
+  }
+  // LEARN: compare only the parts that matter, with keys sorted, so key order never fakes a change.
+  function sig(s) {
+    function sorted(o) { var r = {}; Object.keys(o).sort().forEach(function (k) { if (o[k] !== "" && o[k] != null) r[k] = o[k]; }); return r; }
+    return JSON.stringify([sorted(s.done), sorted(s.ideas), s.target]);
+  }
+  var BASE = clean(window.PROGRESS);      // what the website currently has
+  var state = BASE;
+  if (EDIT) {
+    var local = null;
+    try { local = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+    // Use this browser's copy only if it's newer than the published one.
+    if (local && (local.updated || 0) >= BASE.updated) state = clean(local);
+    else state = clean(BASE);
+  }
+  function dirty() { return EDIT && sig(state) !== sig(BASE); }
+
+  var open = {};   // which week cards are expanded (not saved)
+  function persist() {
+    if (!EDIT) return;
+    state.updated = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    renderBanner();
+  }
+
+  /* ---------- saving progress.js ----------
+     LEARN: Chrome and Edge can write a file straight into a folder you pick (the File System Access API).
+     The first save asks where progress.js lives; after that it remembers. Safari falls back to a download. */
+  function fileText() {
+    var out = { v: 1, updated: state.updated || Date.now(), target: state.target, done: state.done, ideas: {} };
+    Object.keys(state.ideas).forEach(function (k) { if ((state.ideas[k] || "").trim()) out.ideas[k] = state.ideas[k]; });
+    return "/* My progress through 8.01SC. Written by the tracker's Save button. Times are when each item was checked off. */\nwindow.PROGRESS = " + JSON.stringify(out, null, 1) + ";\n";
+  }
+  function idb(mode, fn) {
+    return new Promise(function (res, rej) {
+      var r = indexedDB.open("tracker801", 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore("h"); };
+      r.onerror = function () { rej(r.error); };
+      r.onsuccess = function () {
+        var tx = r.result.transaction("h", mode), st = tx.objectStore("h"), req = fn(st);
+        tx.oncomplete = function () { res(req && req.result); };
+        tx.onerror = function () { rej(tx.error); };
+      };
+    });
+  }
+  function note(msg) { $("save-note").textContent = msg; }
+  function saved(msg) {
+    BASE = clean(state);
+    renderBanner(msg);
+    note(msg);
+  }
+  function save() {
+    var text = fileText();
+    if (window.showSaveFilePicker) {
+      idb("readonly", function (st) { return st.get("progress"); }).catch(function () { return null; }).then(function (h) {
+        var ready = h ? h.requestPermission({ mode: "readwrite" }).then(function (p) { return p === "granted" ? h : null; }) : Promise.resolve(null);
+        return ready.then(function (handle) {
+          return handle || window.showSaveFilePicker({ suggestedName: "progress.js", types: [{ description: "JavaScript", accept: { "text/javascript": [".js"] } }] });
+        });
+      }).then(function (handle) {
+        return handle.createWritable().then(function (w) { return w.write(text).then(function () { return w.close(); }); }).then(function () {
+          idb("readwrite", function (st) { return st.put(handle, "progress"); }).catch(function () {});
+          saved("Saved progress.js. Run ./publish.sh to put it online.");
+        });
+      }).catch(function (err) {
+        if (err && err.name === "AbortError") return;
+        download(text);
+      });
+    } else download(text);
+  }
+  function download(text) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
+    a.download = "progress.js";
+    document.body.appendChild(a); a.click(); a.remove();
+    saved("Downloaded progress.js. Move it into the repo folder (replace the old one), then run ./publish.sh.");
+  }
+
+  /* ---------- derived numbers ---------- */
+  function allItems(filter) {
+    var out = [];
+    COURSE.forEach(function (u) { u.sections.forEach(function (sec) {
+      if (filter && !filter(sec)) return;
+      sec.items.forEach(function (it) { out.push({ u: u, sec: sec, it: it }); });
+    }); });
+    return out;
+  }
+  function secDone(sec) { return sec.items.every(function (it) { return state.done[it.id]; }); }
+  function unitCounts(u) {
+    var t = 0, d = 0;
+    u.sections.forEach(function (sec) { if (sec.kind === "deep") return; sec.items.forEach(function (it) { t++; if (state.done[it.id]) d++; }); });
+    return { t: t, d: d };
+  }
+  function nextSection() {
+    for (var i = 0; i < COURSE.length; i++) {
+      var u = COURSE[i];
+      for (var j = 0; j < u.sections.length; j++) {
+        var sec = u.sections[j];
+        if (sec.kind === "deep") continue;   // deep dives are optional, never "next"
+        if (!secDone(sec)) return { u: u, sec: sec };
+      }
+    }
+    return null;
+  }
+  function weekMinutes() {
+    var since = Date.now() - 7 * 864e5, m = 0;
+    allItems().forEach(function (x) { var ts = state.done[x.it.id]; if (ts && ts > since) m += itemMinutes(x.it, x.sec); });
+    return m;
+  }
+
+  /* ---------- rendering ---------- */
+  function itemRow(u, sec, it, prefix) {
+    var id = prefix + it.id, done = !!state.done[it.id];
+    return '<li class="item' + (done ? " is-done" : "") + '">' +
+      '<input type="checkbox" id="' + esc(id) + '" data-item="' + esc(it.id) + '"' + (done ? " checked" : "") + (EDIT ? "" : " disabled") + '>' +
+      '<label for="' + esc(id) + '">' + esc(it.t) + '</label>' +
+      '<span class="dur">' + (sec.kind === "pset" ? "problem" : fmtDur(it.s)) + '</span>' +
+      (sec.kind === "pset" ? '<span></span>' : '<a class="go" href="' + itemUrl(u, it, sec) + '" target="_blank" rel="noopener">Open ↗</a>') +
+      '</li>';
+  }
+  function readingHtml(sec) {
+    if (!sec.reading) return "";
+    var links = (sec.ch || []).map(function (n) { return '<a href="' + chapterUrl(n) + '" target="_blank" rel="noopener">Ch. ' + n + ' PDF ↗</a>'; }).join(" · ");
+    return '<p class="reading"><strong>Read:</strong> ' + esc(sec.reading.join("; ")) + (links ? " · " + links : "") + '</p>';
+  }
+
+  function renderBanner(msg) {
+    var b = $("banner");
+    if (!EDIT) { b.hidden = true; return; }
+    var d = dirty();
+    b.hidden = !d && !msg;
+    $("banner-text").textContent = d ? "You have changes the website doesn't have yet." : (msg || "");
+    $("save").hidden = !d;
+  }
+
+  function renderStats() {
+    var lessons = 0, lessonsDone = 0;
+    COURSE.forEach(function (u) { u.sections.forEach(function (s) { if (s.kind === "lesson") { lessons++; if (secDone(s)) lessonsDone++; } }); });
+    var vids = allItems(function (s) { return s.kind !== "pset" && s.kind !== "deep"; });
+    var vd = vids.filter(function (x) { return state.done[x.it.id]; }).length;
+    var ps = COURSE.filter(function (u) { return u.sections.some(function (s) { return s.kind === "pset" && secDone(s); }); }).length;
+    $("stats").innerHTML =
+      '<div class="stat"><b>' + lessonsDone + '/' + lessons + '</b><span>lessons complete</span></div>' +
+      '<div class="stat"><b>' + Math.round(100 * vd / Math.max(1, vids.length)) + '%</b><span>of videos and pages</span></div>' +
+      '<div class="stat"><b>' + ps + '/12</b><span>problem sets</span></div>' +
+      '<div class="stat"><b>' + PROJECTS.length + '</b><span>projects built</span></div>';
+  }
+
+  function renderNext() {
+    var n = nextSection(), el = $("next");
+    $("next-h").textContent = EDIT ? "Next up" : "Currently working on";
+    $("next-aside").textContent = EDIT ? "No due dates. It picks up wherever you left off." : "Self-paced, no due dates.";
+    if (!n) { el.innerHTML = '<div class="done-all"><strong>All 12 weeks done.</strong> That is the full 8.01. Next stop: 8.02, Electricity and Magnetism.</div>'; return; }
+    var left = n.sec.items.filter(function (it) { return !state.done[it.id]; });
+    var m = left.reduce(function (a, it) { return a + itemMinutes(it, n.sec); }, 0);
+    var where = n.u.n === 0 ? "Before Week 1" : "Week " + n.u.n + " · " + n.u.title;
+    var first = left[0];
+    var openHref = itemUrl(n.u, first, n.sec);
+    el.innerHTML =
+      '<div class="next-top"><div class="where">' + esc(where) + '</div>' +
+      '<h3>' + esc(secTitle(n.u, n.sec)) + '</h3>' +
+      '<div class="meta"><span class="num">' + left.length + '</span> ' + (n.sec.kind === "pset" ? "problems" : "items") + ' left · about ' + fmtMin(m) + (n.sec.kind === "lesson" ? " plus reading" : "") + '</div>' +
+      readingHtml(n.sec) + '</div>' +
+      '<ul class="next-list">' + left.slice(0, 4).map(function (it) { return itemRow(n.u, n.sec, it, "n-"); }).join("") +
+      (left.length > 4 ? '<li class="item"><span></span><span class="reading">+ ' + (left.length - 4) + ' more in the week card below</span></li>' : "") + '</ul>' +
+      (EDIT ? '<div class="next-actions">' +
+        '<a class="btn primary" href="' + openHref + '" target="_blank" rel="noopener">' + (n.sec.kind === "pset" ? "Open problem set ↗" : "Start: " + esc(first.t.replace(/^[\w.]+\s/, "")) + " ↗") + '</a>' +
+        '<button class="btn" type="button" data-finish="' + esc(n.u.n + ":" + n.u.sections.indexOf(n.sec)) + '">Mark all done</button>' +
+        '</div>' : "");
+  }
+
+  function renderPace() {
+    var m = weekMinutes(), t = state.target, lo = Math.max(0, t - 0.5) * 60, hi = (t + 0.5) * 60, max = (t + 1.5) * 60;
+    var msg = !EDIT ? "Estimated from what was checked off" : m === 0 ? "Fresh week. Next up is waiting." : m >= hi ? "Above target. Make sure school and sleep get their share too." : m >= lo ? "Right on target." : "Some progress. Any session counts.";
+    $("pace").innerHTML =
+      '<div class="label"><strong class="num">' + fmtMin(m) + '</strong> in the last 7 days<small>' + (EDIT ? "Target about " + t + "h · " : "") + msg + '</small></div>' +
+      '<div class="meter" aria-hidden="true"><span class="band" style="left:' + (100 * lo / max) + '%;width:' + (100 * (hi - lo) / max) + '%"></span><i style="width:' + Math.min(100, 100 * m / max) + '%"></i></div>';
+  }
+
+  function renderProjects() {
+    var el = $("projects");
+    if (!PROJECTS.length) {
+      el.innerHTML = '<div class="empty"><strong>First sim coming soon.</strong> Each week has a sim idea below. Finished ones get their own folder in <code>sims/</code> and a card here.</div>';
+      return;
+    }
+    el.innerHTML = '<div class="projects">' + PROJECTS.map(function (p) {
+      var inner = (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : "") +
+        '<span class="tag">' + esc(p.week ? "Week " + p.week : "8.01") + (p.status ? " · " + esc(p.status) : "") + '</span>' +
+        '<h3>' + esc(p.title) + '</h3>' + (p.desc ? '<p>' + esc(p.desc) + '</p>' : "");
+      return p.link ? '<a class="proj" href="' + esc(p.link) + '">' + inner + '</a>' : '<div class="proj">' + inner + '</div>';
+    }).join("") + '</div>';
+  }
+
+  function renderUnits() {
+    var nx = nextSection(), cur = nx ? nx.u.n : -1;
+    $("strip").innerHTML = COURSE.map(function (u) {
+      var c = unitCounts(u), p = c.t ? c.d / c.t : 0;
+      return '<a href="#unit-' + u.n + '" data-jump="' + u.n + '" class="' + (u.n === cur ? "current" : "") + '" title="' + esc(unitLabel(u) + " " + u.title + ": " + c.d + " of " + c.t) + '">' +
+        '<div class="cell"><i style="height:' + (p * 100) + '%"></i></div><div class="lbl">' + (u.n === 0 ? "V" : u.n) + '</div></a>';
+    }).join("");
+
+    $("units").innerHTML = COURSE.map(function (u) {
+      var c = unitCounts(u), complete = c.t && c.d === c.t;
+      var isOpen = open[u.n] !== undefined ? open[u.n] : u.n === cur;
+      var vid = 0; u.sections.forEach(function (s) { if (s.kind !== "deep" && s.kind !== "pset") s.items.forEach(function (it) { vid += it.s; }); });
+      var body = u.sections.map(function (sec, si) {
+        var head = '<h4><span class="k">' + (sec.kind === "lesson" ? (sec.n === 0 ? "Review" : "L" + sec.n) : sec.kind === "pset" ? "PSet" : sec.kind === "deep" ? "Deep" : sec.kind === "examples" ? "Examples" : "Intro") + '</span>' +
+          esc(sec.kind === "lesson" ? sec.title : secTitle(u, sec)) + (sec.kind === "deep" ? ' <span class="opt">Optional</span>' : "") + '</h4>';
+        var extra = sec.kind === "pset" ? '<p class="reading"><a href="' + OCW + "resources/" + sec.res + '/" target="_blank" rel="noopener">Problem Set ' + sec.n + ' PDF ↗</a></p>' : readingHtml(sec);
+        return '<div class="sec">' + head + extra + '<ul class="items">' + sec.items.map(function (it) { return itemRow(u, sec, it, "u-"); }).join("") + '</ul></div>';
+      }).join("");
+      var txt = (state.ideas[u.n] || "").trim(), idea = "";
+      if (EDIT) idea = '<div class="idea"><label for="idea-' + u.n + '"><b>Sim idea</b>What could you animate in Manim from this week?</label>' +
+        '<textarea id="idea-' + u.n + '" data-idea="' + u.n + '" rows="2" placeholder="' + esc("e.g. " + IDEAS[u.n]) + '">' + esc(state.ideas[u.n] || "") + '</textarea></div>';
+      else if (txt) idea = '<div class="idea"><label><b>Sim idea</b></label><p class="idea-text">' + esc(txt) + '</p></div>';
+      return '<details class="unit' + (complete ? " complete" : "") + '" id="unit-' + u.n + '" data-unit="' + u.n + '"' + (isOpen ? " open" : "") + '>' +
+        '<summary><span class="wk">' + (complete ? "✓ " : "") + unitLabel(u) + '</span>' +
+        '<span class="utitle">' + esc(u.n === 0 ? "Review: Vectors" : u.title) + '<span class="usub">' + fmtMin(mins(vid)) + ' of video' + (u.n ? " · Problem Set " + u.n : "") + '</span></span>' +
+        '<span class="uprog"><span class="num">' + c.d + '/' + c.t + '</span><span class="meter"><i style="width:' + (c.t ? 100 * c.d / c.t : 0) + '%"></i></span></span></summary>' +
+        '<div class="ubody">' + body + idea + '</div></details>';
+    }).join("");
+  }
+
+  function render() {
+    var activeId = document.activeElement && document.activeElement.id;
+    renderStats(); renderNext(); renderPace(); renderProjects(); renderUnits(); renderBanner();
+    $("target").value = String(state.target);
+    if (activeId && $(activeId)) { try { $(activeId).focus({ preventScroll: true }); } catch (e) {} }
+  }
+
+  /* ---------- events ----------
+     LEARN: "event delegation" = one listener on the whole page instead of one per checkbox.
+     It keeps working after render() replaces the HTML. */
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (!EDIT) return;
+    if (t.dataset && t.dataset.item) {
+      if (t.checked) state.done[t.dataset.item] = Date.now(); else delete state.done[t.dataset.item];
+      persist(); render();
+    } else if (t.id === "target") {
+      state.target = Number(t.value) || 2; persist(); renderPace();
+    }
+  });
+  document.addEventListener("click", function (e) {
+    var f = e.target.closest && e.target.closest("[data-finish]");
+    if (f && EDIT) {
+      var p = f.dataset.finish.split(":"), u = COURSE[+p[0]], sec = u.sections[+p[1]], now = Date.now();
+      sec.items.forEach(function (it) { if (!state.done[it.id]) state.done[it.id] = now; });
+      persist(); render(); return;
+    }
+    var j = e.target.closest && e.target.closest("[data-jump]");
+    if (j) { open[+j.dataset.jump] = true; var d = $("unit-" + j.dataset.jump); if (d) d.open = true; }
+  });
+  document.addEventListener("toggle", function (e) {
+    var d = e.target; if (d.dataset && d.dataset.unit !== undefined) open[+d.dataset.unit] = d.open;
+  }, true);
+  var ideaTimer = null;
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (EDIT && t.dataset && t.dataset.idea !== undefined) {
+      state.ideas[t.dataset.idea] = t.value;
+      clearTimeout(ideaTimer); ideaTimer = setTimeout(persist, 500);
+    }
+  });
+  $("save").addEventListener("click", save);
+  $("save2").addEventListener("click", save);
+  var armed = false;
+  $("discard").addEventListener("click", function (e) {
+    if (!armed) { armed = true; e.target.textContent = "Click again to undo"; setTimeout(function () { armed = false; $("discard").textContent = "Undo unsaved changes"; }, 4000); return; }
+    armed = false; e.target.textContent = "Undo unsaved changes";
+    state = clean(BASE);
+    try { localStorage.removeItem(KEY); } catch (err) {}
+    render(); note("Back to what the website has.");
+  });
+
+  /* ---------- light / dark toggle ----------
+     LEARN: the choice is saved under "theme", the same key my logbook uses, so both sites match. */
+  function themeLabel() { $("theme-label").textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "Light" : "Dark"; $("theme").setAttribute("aria-label", "Switch to " + $("theme-label").textContent.toLowerCase() + " mode"); }
+  $("theme").addEventListener("click", function () {
+    var root = document.documentElement, next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+    themeLabel();
+  });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
+    var saved = null; try { saved = localStorage.getItem("theme"); } catch (err) {}
+    if (!saved) { document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light"); themeLabel(); }
+  });
+
+  /* ---------- hero drawing: projectile, equal time steps, velocity vectors ---------- */
+  function drawTrajectory() {
+    var svg = $("traj"), x0 = 22, y0 = 148, vx = 26, vy = -56, g = 7, out = [];
+    out.push('<line class="ax" x1="14" y1="148" x2="252" y2="148"/><line class="ax" x1="22" y1="156" x2="22" y2="14"/>');
+    out.push('<text x="244" y="162">x</text><text x="8" y="20">y</text>');
+    var d = "M" + x0 + " " + y0;
+    for (var s = 0.1; s <= 8.01; s += 0.1) d += " L" + (x0 + vx * s).toFixed(1) + " " + (y0 + vy * s + g * s * s).toFixed(1);
+    out.push('<path class="path" d="' + d + '"/>');
+    for (var t = 0; t <= 8; t++) {
+      var x = x0 + vx * t, y = y0 + vy * t + g * t * t, ux = vx * 0.55, uy = (vy + 2 * g * t) * 0.55;
+      out.push('<circle class="dot" cx="' + x + '" cy="' + y + '" r="2.6"/>');
+      if (t % 2 === 0 && t < 8) {
+        var ex = x + ux, ey = y + uy, ang = Math.atan2(uy, ux), h = 5;
+        out.push('<line class="vec" x1="' + x + '" y1="' + y + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>');
+        out.push('<path class="head" d="M' + ex.toFixed(1) + ' ' + ey.toFixed(1) + ' L' + (ex - h * Math.cos(ang - .45)).toFixed(1) + ' ' + (ey - h * Math.sin(ang - .45)).toFixed(1) + ' L' + (ex - h * Math.cos(ang + .45)).toFixed(1) + ' ' + (ey - h * Math.sin(ang + .45)).toFixed(1) + 'Z"/>');
+      }
+    }
+    out.push('<text x="150" y="16">v at equal Δt</text>');
+    svg.innerHTML = out.join("");
+  }
+
+  if (EDIT) { $("mode").hidden = false; $("settings").hidden = false; }
+  else document.body.classList.add("viewer");
+  themeLabel();
+  drawTrajectory();
+  render();
+})();
+</script>
+</body>
+</html>
