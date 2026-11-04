@@ -6,16 +6,14 @@
 
   FILES
   index.html      layout, styling and behavior (this file)
-  course-data.js  every lesson, reading and problem set, generated from the OCW download
+  course-data.js  every lesson, video, reading, worked example and problem set, generated from the OCW download
   progress.js     what I've finished. The public site reads this file.
   projects.js     the sims and projects listed on the page
-  publish.sh      commits progress.js (and anything else changed) and pushes it
+  publish.sh      commits and pushes changes
 
-  HOW UPDATING WORKS
-  Visitors see a read-only page built from progress.js.
-  On my MacBook I open the page with ?edit at the end of the address once. That turns on edit mode
-  in that browser: checkboxes work, and a red bar appears when there are changes the site doesn't
-  have yet. "Save progress.js" writes the file into this folder; ./publish.sh pushes it.
+  EDIT MODE
+  Visitors get a read-only page. Add ?edit to the address once (on my MacBook) and checkboxes turn on in
+  that browser. "Save progress.js" writes the file; ./publish.sh pushes it. ?view turns edit mode off.
 
   Search for "LEARN:" to jump between the explanations.
 -->
@@ -23,10 +21,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>8.01 Tracker · Jared Bridgewater</title>
-  <meta name="description" content="Where I am in MIT OCW 8.01SC Classical Mechanics, and the simulations I build from it.">
+  <title>8.01 Classical Mechanics · Jared Bridgewater</title>
+  <meta name="description" content="Where I am in MIT OCW 8.01SC Classical Mechanics, with every video, reading and problem set, and the simulations I build from it.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <!-- LEARN: runs before the page draws so it never flashes the wrong theme. Same key as my logbook. -->
+  <!-- LEARN: runs before the page draws so it never flashes the wrong theme. Same "theme" key as my logbook. -->
   <script>
     (function () {
       var saved = null;
@@ -36,224 +34,176 @@
     })();
   </script>
   <style>
-/* Layout concept: one narrow column, like a lab notebook. Where I am leads, projects follow, then the 13 units as collapsible cards.
-   LEARN: same token setup as my logbook's style.css, with MIT red as the accent. */
+/* Layout: one calm column. Status first, then the weeks as one grouped list, then projects and reference.
+   LEARN: every color is a variable here, so dark mode only swaps the variables. Red is used sparingly:
+   progress, the checkmarks, and links. */
 :root {
-  --canvas: #F4F4F6;
-  --surface: #FFFFFF;
-  --ink: #1A1A1D;
-  --ink-2: #55555B;
-  --ink-3: #8A8B8C;          /* MIT silver gray */
-  --line: #E4E4E8;
-  --grid: rgba(26,26,29,.05);
-  --accent: #A31F34;         /* MIT red */
-  --accent-ink: #FFFFFF;
-  --accent-soft: rgba(163,31,52,.07);
-  --good: #248A3D;
-  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
-  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --radius: 18px;
-  --page: 860px;
+  --bg: #F5F5F7;
+  --card: #FFFFFF;
+  --ink: #1D1D1F;
+  --ink-2: #6E6E73;
+  --ink-3: #8E8E93;
+  --sep: #E5E5EA;
+  --fill: #EDEDF0;
+  --accent: #A31F34;           /* MIT red */
+  --on-accent: #FFFFFF;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius: 14px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --canvas: #0B0B0C; --surface: #18181A; --ink: #F4F4F6; --ink-2: #A6A6AB; --ink-3: #75757B;
-    --line: #2A2A2D; --grid: rgba(255,255,255,.045); --accent: #FF5C70; --accent-ink: #1A0006;
-    --accent-soft: rgba(255,92,112,.12); --good: #30D158; --shadow: none; color-scheme: dark;
+    --bg: #000000; --card: #1C1C1E; --ink: #F5F5F7; --ink-2: #A1A1A6; --ink-3: #78787E;
+    --sep: #38383A; --fill: #2C2C2E; --accent: #FF5468; --on-accent: #1A0005; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --canvas: #0B0B0C; --surface: #18181A; --ink: #F4F4F6; --ink-2: #A6A6AB; --ink-3: #75757B;
-  --line: #2A2A2D; --grid: rgba(255,255,255,.045); --accent: #FF5C70; --accent-ink: #1A0006;
-  --accent-soft: rgba(255,92,112,.12); --good: #30D158; --shadow: none; color-scheme: dark;
+  --bg: #000000; --card: #1C1C1E; --ink: #F5F5F7; --ink-2: #A1A1A6; --ink-3: #78787E;
+  --sep: #38383A; --fill: #2C2C2E; --accent: #FF5468; --on-accent: #1A0005; color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--canvas); color: var(--ink);
-  font-family: var(--sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
-}
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.47; -webkit-font-smoothing: antialiased; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, select:focus-visible {
-  outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px;
-}
-.wrap {
-  width: 100%; max-width: var(--page); margin: 0 auto;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-}
-.tag { font-family: var(--mono); font-size: 12px; letter-spacing: .05em; color: var(--ink-3); text-transform: uppercase; }
-.tag::before { content: "["; } .tag::after { content: "]"; }
-.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+[hidden] { display: none !important; }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+.num { font-variant-numeric: tabular-nums; }
 
-/* ---------- Top bar ---------- */
-.bar { border-bottom: 1px solid var(--line); background: var(--canvas); }
-.bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px; }
-.brand { font-weight: 700; letter-spacing: -.01em; color: var(--ink); display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
-.brand .back { font-weight: 400; font-size: 14px; color: var(--ink-3); }
-.bar-right { display: flex; align-items: center; gap: 10px; }
-.sync { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
-.sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
-.sync.ok::before { background: var(--good); }
-/* LEARN: the toggle shows the mode you'd switch TO, so the label always says what clicking does. */
-.theme-toggle { font: inherit; font-size: 13px; font-weight: 500; background: var(--surface); border: 1px solid var(--line); color: var(--ink); border-radius: 999px; height: 34px; padding: 0 12px 0 10px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
-.theme-toggle:hover { border-color: var(--ink-3); }
-.theme-toggle svg { width: 15px; height: 15px; }
-:root[data-theme="dark"] .theme-toggle .to-dark, :root:not([data-theme="dark"]) .theme-toggle .to-light { display: none; }
-.mode { font-family: var(--mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 8px; }
+/* ---------- top bar ---------- */
+.bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 16px; }
+.brand { color: var(--ink); font-weight: 600; font-size: 15px; }
+.brand span { color: var(--ink-3); font-weight: 400; margin-left: 8px; }
+.bar-right { display: flex; align-items: center; gap: 8px; }
+.chip { font-size: 12px; font-weight: 600; color: var(--accent); background: var(--fill); border-radius: 999px; padding: 4px 10px; }
+.pill { font: inherit; font-size: 13px; color: var(--ink); background: var(--fill); border: 0; border-radius: 999px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.pill svg { width: 14px; height: 14px; }
+:root[data-theme="dark"] .pill .to-dark, :root:not([data-theme="dark"]) .pill .to-light { display: none; }
 
-/* ---------- Hero ---------- */
-.hero { padding-block: 40px 8px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
-.hero h1 { font-size: clamp(34px, 6vw, 54px); line-height: 1.02; letter-spacing: -.035em; margin: 10px 0 12px; text-wrap: balance; }
-.hero h1 .code { color: var(--accent); font-family: var(--mono); font-weight: 600; letter-spacing: -.04em; display: block; font-size: .62em; margin-bottom: 4px; }
-.hero p { margin: 0; color: var(--ink-2); max-width: 46ch; }
-.traj { width: 260px; max-width: 100%; height: auto; display: block; }
-.traj .ax { stroke: var(--ink-3); stroke-width: 1; }
-.traj .path { stroke: var(--ink-3); stroke-dasharray: 3 4; fill: none; }
-.traj .dot { fill: var(--ink); }
-.traj .vec { stroke: var(--accent); stroke-width: 1.6; fill: none; }
-.traj .head { fill: var(--accent); }
-.traj text { font-family: var(--mono); font-size: 9px; fill: var(--ink-3); }
+/* ---------- unsaved-changes banner (edit mode) ---------- */
+.banner { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--ink); color: var(--bg); font-size: 14px; }
+.banner .wrap { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 10px; flex-wrap: wrap; }
+.banner button { font: inherit; font-size: 13px; font-weight: 600; border: 0; border-radius: 999px; padding: 6px 14px; background: var(--bg); color: var(--ink); cursor: pointer; }
 
-.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-top: 28px; }
-.stat { background: var(--surface); padding: 14px 16px; min-width: 0; }
-.stat b { display: block; font-family: var(--mono); font-size: 22px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.stat span { font-size: 12.5px; color: var(--ink-3); }
+/* ---------- hero ---------- */
+.hero { padding-block: 56px 8px; }
+.eyebrow { font-size: 14px; font-weight: 600; color: var(--accent); margin: 0 0 6px; }
+h1 { font-family: var(--display); font-size: clamp(40px, 7vw, 56px); line-height: 1.05; letter-spacing: -.025em; font-weight: 700; margin: 0 0 14px; }
+.lede { font-size: 19px; color: var(--ink-2); margin: 0; max-width: 34em; }
+.progress { margin-top: 32px; }
+.progress-line { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--ink-2); margin-bottom: 8px; flex-wrap: wrap; }
+.progress-line b { color: var(--ink); font-weight: 600; }
+.track { height: 4px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
 
-/* ---------- Next up ---------- */
-section { padding-top: 36px; }
-.head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-.head h2 { font-size: 22px; letter-spacing: -.02em; margin: 0; }
-.head .aside { font-size: 14px; color: var(--ink-3); }
+/* ---------- sections ---------- */
+section { padding-top: 56px; }
+h2 { font-family: var(--display); font-size: 28px; letter-spacing: -.02em; font-weight: 700; margin: 0 0 4px; }
+.sub { color: var(--ink-2); font-size: 15px; margin: 0 0 18px; }
 
-.next { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-.next-top { padding: 22px 24px 18px; border-top: 3px solid var(--accent); }
-.next-top .where { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
-.next-top h3 { font-size: 24px; letter-spacing: -.02em; margin: 6px 0 6px; text-wrap: balance; }
-.next-top .meta { color: var(--ink-2); font-size: 14px; }
-.next-list { list-style: none; margin: 0; padding: 0 24px; border-top: 1px solid var(--line); }
-.next-actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px 24px 20px; border-top: 1px solid var(--line); }
-.btn { font: inherit; font-size: 14px; font-weight: 600; border-radius: 999px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-.btn:hover { text-decoration: none; border-color: var(--ink-3); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.btn.primary:hover { filter: brightness(1.06); }
-.btn.small { padding: 6px 12px; font-size: 13px; font-weight: 500; }
-.done-all { padding: 28px 24px; text-align: center; color: var(--ink-2); }
+/* LEARN: a "grouped list" is the iPhone Settings look: one rounded card, rows separated by thin lines. */
+.group { background: var(--card); border-radius: var(--radius); overflow: hidden; }
+.group + .group { margin-top: 16px; }
+.label { font-size: 13px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin: 22px 0 8px; padding-left: 2px; }
+.label:first-child { margin-top: 0; }
+.note { font-size: 14px; color: var(--ink-2); margin: -2px 0 10px; padding-left: 2px; }
 
-/* Week pace */
-.pace { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
-.pace .label { font-size: 14px; }
-.pace .label small { display: block; color: var(--ink-3); font-size: 12.5px; }
-.meter { height: 6px; border-radius: 999px; background: var(--line); position: relative; overflow: hidden; min-width: 0; }
-.meter i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 999px; }
-.meter .band { position: absolute; top: 0; bottom: 0; background: var(--accent-soft); }
+.row { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 11px 16px; position: relative; min-height: 46px; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 50px; right: 0; height: 1px; background: var(--sep); }
+.row.plain { grid-template-columns: minmax(0,1fr) auto; }
+.row.plain + .row::before, .row + .row.plain::before { left: 16px; }
+.row .t { min-width: 0; font-size: 16px; }
+.row .t a { color: var(--ink); }
+.row .t a:hover { color: var(--accent); text-decoration: none; }
+.row .t small { display: block; color: var(--ink-2); font-size: 13.5px; line-height: 1.4; margin-top: 2px; }
+.row .m { font-size: 13.5px; color: var(--ink-3); white-space: nowrap; display: flex; gap: 12px; align-items: center; }
+.row .m a { color: var(--ink-3); }
+.row .m a:hover { color: var(--accent); }
+.row .m a.key { color: var(--accent); font-weight: 500; }
+.row.done .t, .row.done .t a { color: var(--ink-3); }
 
-/* ---------- Unit strip ---------- */
-.strip { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 4px; margin-bottom: 16px; }
-.strip a { display: block; text-decoration: none; }
-.strip .cell { height: 26px; border-radius: 6px; background: var(--line); position: relative; overflow: hidden; }
-.strip .cell i { position: absolute; inset: auto 0 0 0; background: var(--accent); }
-.strip .lbl { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); text-align: center; margin-top: 4px; }
-.strip a.current .lbl { color: var(--accent); font-weight: 700; }
+/* LEARN: appearance:none removes the browser's checkbox so we can draw a round one, like Reminders. */
+.ck { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin: 0; border-radius: 50%; border: 1.5px solid var(--ink-3); background: transparent; cursor: pointer; display: grid; place-items: center; }
+.ck:checked { background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 14px no-repeat; border-color: var(--accent); }
+.ck:disabled { cursor: default; }
+.viewer .ck:not(:checked) { border-color: var(--sep); }
 
-/* ---------- Units ---------- */
-.units { display: grid; gap: 10px; }
-details.unit { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
-details.unit > summary { list-style: none; cursor: pointer; padding: 16px 20px; display: grid; grid-template-columns: 44px minmax(0,1fr) 120px; gap: 14px; align-items: center; }
-details.unit > summary::-webkit-details-marker { display: none; }
-.wk { font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
-.unit.complete .wk { color: var(--good); }
-.utitle { font-weight: 600; letter-spacing: -.01em; min-width: 0; }
-.usub { display: block; font-weight: 400; font-size: 13px; color: var(--ink-3); }
-.uprog { display: grid; gap: 6px; justify-items: end; }
-.uprog .num { font-size: 12px; color: var(--ink-3); }
-.uprog .meter { width: 100%; }
-.ubody { padding: 0 20px 20px; display: grid; gap: 18px; border-top: 1px solid var(--line); padding-top: 18px; }
+/* ---------- now ---------- */
+.now-head { padding: 20px 16px 14px; border-bottom: 1px solid var(--sep); }
+.now-head .where { font-size: 13px; color: var(--ink-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.now-head h3 { font-family: var(--display); font-size: 22px; letter-spacing: -.015em; margin: 4px 0 2px; }
+.now-head p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+.now-actions { display: flex; gap: 10px; flex-wrap: wrap; padding: 14px 16px 16px; border-top: 1px solid var(--sep); }
+.btn { font: inherit; font-size: 15px; font-weight: 500; border-radius: 999px; padding: 8px 18px; cursor: pointer; border: 0; background: var(--fill); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
+.btn:hover { text-decoration: none; filter: brightness(.97); }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
 
-.sec h4 { margin: 0; font-size: 15px; letter-spacing: -.01em; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-.sec h4 .k { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
-.sec h4 .opt { font-size: 11.5px; font-weight: 500; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
-.reading { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-2); }
-.reading a { white-space: nowrap; }
-.items { list-style: none; margin: 8px 0 0; padding: 0; }
-.item { display: grid; grid-template-columns: 22px minmax(0,1fr) auto auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
-.items .item:first-child { border-top: 0; }
-.next-list .item:first-child { border-top: 0; }
-.item input { width: 17px; height: 17px; accent-color: var(--accent); margin: 0; cursor: pointer; }
-.item input:disabled { cursor: default; opacity: 1; }
-.viewer .item label { cursor: default; }
-.item label { cursor: pointer; min-width: 0; }
-.item.is-done label { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line); }
-.item .dur { font-family: var(--mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.item .go { font-size: 13px; white-space: nowrap; }
-
-.idea { border-top: 1px dashed var(--line); padding-top: 14px; }
-.idea label { font-size: 13px; color: var(--ink-2); display: block; margin-bottom: 6px; }
-.idea label b { font-family: var(--mono); font-size: 11.5px; color: var(--accent); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-right: 6px; }
-textarea, select, input[type="text"] {
-  width: 100%; font: inherit; font-size: 14px; color: var(--ink); background: var(--canvas);
-  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; resize: vertical;
-}
+/* ---------- weeks ---------- */
+details.week { border-top: 1px solid var(--sep); }
+details.week:first-child { border-top: 0; }
+details.week > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 64px minmax(0,1fr) auto 14px; gap: 12px; align-items: center; padding: 14px 16px; }
+details.week > summary::-webkit-details-marker { display: none; }
+.wn { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.wt { font-weight: 500; min-width: 0; }
+.wc { font-size: 13.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.week.complete .wc { color: var(--accent); }
+.chev { width: 14px; height: 14px; color: var(--ink-3); transition: transform .2s; }
+details[open] > summary .chev { transform: rotate(90deg); }
+.wbody { background: var(--bg); padding: 20px 16px 24px; border-top: 1px solid var(--sep); }
+.ideas { margin: 0; padding: 14px 16px; list-style: none; display: grid; gap: 6px; font-size: 15px; }
+.ideas li { font-variant-numeric: tabular-nums; }
+.ideas li::before { content: "·"; color: var(--accent); font-weight: 700; margin-right: 8px; }
+textarea { width: 100%; font: inherit; font-size: 15px; color: var(--ink); background: var(--card); border: 1px solid var(--sep); border-radius: 12px; padding: 12px 14px; resize: vertical; display: block; }
 textarea::placeholder { color: var(--ink-3); }
+.idea-text { background: var(--card); border-radius: 12px; padding: 12px 14px; margin: 0; white-space: pre-wrap; font-size: 15px; }
 
-/* ---------- Unpublished-changes banner (edit mode only) ---------- */
-.banner { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--accent); color: var(--accent-ink); }
-.banner .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; flex-wrap: wrap; font-size: 14px; }
-.banner .btn { background: var(--accent-ink); color: var(--accent); border-color: transparent; }
+/* ---------- projects ---------- */
+.projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.proj { background: var(--card); border-radius: var(--radius); padding: 16px; color: var(--ink); display: grid; gap: 4px; align-content: start; }
+a.proj:hover { text-decoration: none; filter: brightness(.98); }
+.proj img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
+.proj .k { font-size: 13px; color: var(--ink-3); }
+.proj h3 { margin: 0; font-size: 17px; }
+.proj p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+.empty { background: var(--card); border-radius: var(--radius); padding: 20px 16px; color: var(--ink-2); font-size: 15px; }
 
-/* ---------- Projects ---------- */
-.projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-.proj { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 6px; align-content: start; min-width: 0; color: var(--ink); }
-a.proj:hover { text-decoration: none; border-color: var(--ink-3); }
-.proj img { border-radius: 10px; border: 1px solid var(--line); aspect-ratio: 16 / 9; object-fit: cover; width: 100%; margin-bottom: 6px; }
-.proj h3 { margin: 0; font-size: 16px; letter-spacing: -.01em; }
-.proj p { margin: 0; font-size: 14px; color: var(--ink-2); }
-.empty { border: 1px dashed var(--line); border-radius: 16px; padding: 22px; color: var(--ink-2); font-size: 14.5px; }
-.empty strong { color: var(--ink); }
-.idea-text { font-size: 14px; color: var(--ink-2); margin: 0; white-space: pre-wrap; }
+/* ---------- reference ---------- */
+.refgrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; align-items: start; }
+.refgrid .group + .group { margin-top: 0; }
+.ch { color: var(--ink-3); font-variant-numeric: tabular-nums; margin-right: 8px; }
 
-/* ---------- Settings / footer ---------- */
-.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; min-width: 0; }
-.panel h3 { margin: 0 0 4px; font-size: 15px; }
-.panel p { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }
-.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.note { font-size: 13px; color: var(--ink-3); min-height: 1.2em; margin-top: 8px; }
-footer { padding-block: 40px 48px; font-size: 12.5px; color: var(--ink-3); }
-footer p { margin: 0 0 6px; max-width: 70ch; }
+footer { padding-block: 56px 48px; font-size: 13px; color: var(--ink-3); }
+footer p { margin: 0 0 6px; }
+.edit-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+.saved-note { font-size: 13px; color: var(--ink-2); }
 
 @media (max-width: 640px) {
-  .hero { grid-template-columns: 1fr; padding-top: 28px; }
-  .traj { width: 200px; }
-  .stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .pace { grid-template-columns: 1fr; gap: 10px; }
-  details.unit > summary { grid-template-columns: 36px minmax(0,1fr) 64px; padding: 14px 16px; }
-  .ubody { padding-inline: 16px; }
-  .item { grid-template-columns: 22px minmax(0,1fr) auto; }
-  .item .dur { display: none; }
-  .strip .lbl { font-size: 9px; }
-  .brand .back { display: none; }
+  .hero { padding-top: 32px; }
+  details.week > summary { grid-template-columns: 52px minmax(0,1fr) auto 12px; gap: 8px; }
+  .refgrid { grid-template-columns: 1fr; }
+  .row .m .dur { display: none; }
+  .brand span { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
-</style>
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+  </style>
 </head>
 <body>
 
 <div class="banner" id="banner" hidden>
   <div class="wrap">
-    <span id="banner-text">Changes the website doesn't have yet.</span>
-    <button class="btn small" type="button" id="save">Save progress.js</button>
+    <span id="banner-text">You have changes the website doesn't have yet.</span>
+    <button type="button" id="save">Save progress.js</button>
   </div>
 </div>
 
 <header class="bar">
   <div class="wrap">
-    <a class="brand" href="https://gubbgub.github.io/">8.01 Tracker <span class="back">← Logbook</span></a>
+    <a class="brand" href="https://gubbgub.github.io/">Jared Bridgewater<span>Logbook</span></a>
     <div class="bar-right">
-      <span class="mode" id="mode" hidden>Edit mode</span>
-      <button class="theme-toggle" type="button" id="theme">
+      <span class="chip" id="mode" hidden>Editing</span>
+      <button class="pill" type="button" id="theme">
         <svg class="to-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         <svg class="to-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         <span id="theme-label">Dark</span>
@@ -262,78 +212,52 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
   </div>
 </header>
 
-<main>
-  <div class="wrap">
-    <!-- ===================== HERO ===================== -->
-    <div class="hero">
-      <div>
-        <span class="tag">Course 8 · Self-study</span>
-        <h1><span class="code">8.01SC</span>Classical Mechanics</h1>
-        <p>I'm working through MIT's intro physics course on OpenCourseWare, taught by Prof. Deepto Chakrabarty and Dr. Peter Dourmashkin. This page tracks where I am and collects the simulations I build along the way.</p>
-      </div>
-      <!-- LEARN: drawn by JavaScript (drawTrajectory). Dots are equal time steps; red arrows are the velocity vector. -->
-      <svg class="traj" id="traj" viewBox="0 0 260 170" role="img" aria-label="Projectile path with velocity vectors at equal time steps"></svg>
+<main class="wrap">
+  <div class="hero">
+    <p class="eyebrow">MIT 8.01SC · Self-study</p>
+    <h1>Classical Mechanics</h1>
+    <p class="lede">I'm working through MIT's first physics course on OpenCourseWare, at my own pace. Every lecture, reading and problem set is here, along with the simulations I build from it.</p>
+    <div class="progress">
+      <div class="progress-line"><span id="p-left"></span><span id="p-right"></span></div>
+      <div class="track"><i id="p-bar" style="width:0"></i></div>
     </div>
-
-    <div class="stats" id="stats" aria-live="polite"></div>
-
-    <!-- ===================== NEXT UP ===================== -->
-    <section aria-labelledby="next-h">
-      <div class="head"><h2 id="next-h">Currently working on</h2><span class="aside" id="next-aside">Self-paced, no due dates.</span></div>
-      <div class="next" id="next"></div>
-      <div class="pace" id="pace"></div>
-    </section>
-
-    <!-- ===================== PROJECTS ===================== -->
-    <section aria-labelledby="proj-h">
-      <div class="head"><h2 id="proj-h">Projects from the course</h2><span class="aside">Simulations and builds, listed in projects.js</span></div>
-      <div id="projects"></div>
-    </section>
-
-    <!-- ===================== COURSE MAP ===================== -->
-    <section aria-labelledby="map-h">
-      <div class="head"><h2 id="map-h">Course map</h2><span class="aside">Vectors review + 12 weeks</span></div>
-      <nav class="strip" id="strip" aria-label="Jump to a week"></nav>
-      <div class="units" id="units"></div>
-    </section>
-
-    <!-- ===================== SETTINGS (edit mode only) ===================== -->
-    <section aria-labelledby="set-h" id="settings" hidden>
-      <div class="head"><h2 id="set-h">Settings</h2><span class="aside">Only visible in edit mode</span></div>
-      <div class="settings">
-        <div class="panel">
-          <h3>Weekly target</h3>
-          <p>A soft goal for the last 7 days. Nothing turns red if you miss it.</p>
-          <select id="target" aria-label="Weekly target">
-            <option value="1">About 1 hour</option>
-            <option value="2">About 2 hours</option>
-            <option value="3">About 3 hours</option>
-            <option value="4">About 4 hours</option>
-          </select>
-        </div>
-        <div class="panel">
-          <h3>Publish</h3>
-          <p>Save progress.js into the repo folder, then run <code>./publish.sh</code> in Terminal.</p>
-          <div class="row">
-            <button class="btn small" type="button" id="save2">Save progress.js</button>
-            <button class="btn small" type="button" id="discard">Undo unsaved changes</button>
-          </div>
-          <div class="note" id="save-note" role="status"></div>
-        </div>
-        <div class="panel">
-          <h3>Edit mode</h3>
-          <p>Turn it off to see exactly what visitors see.</p>
-          <div class="row"><a class="btn small" href="?view">Leave edit mode</a></div>
-        </div>
-      </div>
-    </section>
   </div>
+
+  <section aria-labelledby="now-h">
+    <h2 id="now-h">Now</h2>
+    <p class="sub" id="now-sub">What I'm working on.</p>
+    <div class="group" id="now"></div>
+  </section>
+
+  <section aria-labelledby="weeks-h">
+    <h2 id="weeks-h">Weeks</h2>
+    <p class="sub">Each week: key ideas, lectures, readings, worked examples, and the problem set.</p>
+    <div class="group" id="weeks"></div>
+  </section>
+
+  <section aria-labelledby="proj-h">
+    <h2 id="proj-h">Projects</h2>
+    <p class="sub">Simulations built from the course. Code lives in <code>sims/</code>.</p>
+    <div id="projects"></div>
+  </section>
+
+  <section aria-labelledby="ref-h">
+    <h2 id="ref-h">Reference</h2>
+    <p class="sub">The course textbook, <i>Classical Mechanics: MIT 8.01 Course Notes</i> by Peter Dourmashkin (2022 edition), one PDF per chapter.</p>
+    <div class="refgrid" id="ref"></div>
+  </section>
 </main>
 
 <footer>
   <div class="wrap">
+    <div class="edit-row" id="edit-row" hidden>
+      <button class="btn" type="button" id="save2">Save progress.js</button>
+      <button class="btn" type="button" id="discard">Undo unsaved changes</button>
+      <a class="btn" href="?view">Leave edit mode</a>
+      <span class="saved-note" id="save-note" role="status"></span>
+    </div>
     <p>Independent self-study. Not affiliated with or endorsed by MIT.</p>
-    <p>Course videos, notes and problem sets: <a href="https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/">MIT OpenCourseWare 8.01SC</a>, licensed CC BY-NC-SA 4.0. Code on <a href="https://github.com/GubbGub/8.01-classical-mechanics">GitHub</a>.</p>
+    <p>Lectures, notes and problem sets from <a href="https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/">MIT OpenCourseWare 8.01SC</a> (Prof. Deepto Chakrabarty, Dr. Peter Dourmashkin), licensed CC BY-NC-SA 4.0. Source on <a href="https://github.com/GubbGub/8.01-classical-mechanics">GitHub</a>.</p>
   </div>
 </footer>
 
@@ -343,55 +267,62 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
 <script>
 /* =================================================================
    LEARN: THE PLAN
-   1. State is one small object: which items are done (and when), sim ideas, weekly target.
-   2. Everyone starts from progress.js, the copy that lives in the repo.
-   3. In edit mode, my clicks are kept in this browser (localStorage) until I save
-      a new progress.js and push it. Visitors never see edit controls.
-   4. render() redraws the page from state. Every click changes state, then re-renders.
+   1. State = which items are done (and when) + sim ideas. Everyone starts from progress.js.
+   2. In edit mode my clicks are kept in this browser until I save a new progress.js and push it.
+   3. render() redraws the page from state. Every click changes state, then re-renders.
    ================================================================= */
 (function () {
-  var COURSE = window.COURSE || [];
-  var PROJECTS = window.PROJECTS || [];
+  var COURSE = window.COURSE || [], TEXTBOOK = window.TEXTBOOK || [], PROJECTS = window.PROJECTS || [];
   var OCW = "https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/";
   var KEY = "tracker801", EDIT_KEY = "tracker801-edit";
+
+  /* The core results of each week, in my own summary. Index = week number (0 = vectors review). */
+  var KEY_IDEAS = [
+    ["A = Aₓ î + A_y ĵ, with Aₓ = |A| cos θ and A_y = |A| sin θ", "|A| = √(Aₓ² + A_y²)", "Vectors add component by component"],
+    ["v = dx/dt, a = dv/dt", "Constant a: x(t) = x₀ + v₀t + ½at², v(t) = v₀ + at", "Going backwards: v(t) = v₀ + ∫a dt, x(t) = x₀ + ∫v dt", "Projectiles: x and y are independent; only y accelerates (−g)"],
+    ["Newton's 2nd law: F_net = m a, one equation per direction", "Newton's 3rd law: F_A on B = −F_B on A", "Gravity: F = G m₁m₂ / r², so g = GM_E / R_E²", "Friction: f_s ≤ μ_s N, f_k = μ_k N. Springs: F = −kx"],
+    ["Arc length s = Rθ, speed v = Rω, period T = 2π/ω", "Centripetal acceleration a_r = v²/R = Rω², pointing to the center", "Tangential acceleration a_t = Rα", "The net inward force supplies m v²/R; it is never a separate force"],
+    ["Constraint conditions: a fixed rope length links the accelerations", "Massive rope: tension varies, found with a differential element dm", "Drag: F = −bv at low speed, F = −½CρAv² at high speed", "Terminal velocity: drag balances gravity"],
+    ["Momentum p = mv; impulse J = ∫F dt = Δp", "F_ext = dP_sys/dt; internal forces cancel in pairs", "No external force in a direction: momentum conserved in that direction", "Center of mass R_cm = Σ mᵢrᵢ / M, and F_ext = M A_cm"],
+    ["Relative velocity: v_ground = v_relative + v_frame", "Recoil: momentum before = momentum after", "Rocket: M dv/dt = F_ext + u_rel dM/dt", "No external force: Δv = u ln(m_i / m_f)"],
+    ["Kinetic energy K = ½mv²", "Work W = ∫F · dr (dot product: only the force along the motion counts)", "Work–energy theorem: W_net = ΔK", "Power P = dW/dt = F · v. Conservative forces: work is path-independent"],
+    ["ΔU = −∫F · dr for a conservative force", "U = mgy, U = ½kx², U = −G m₁m₂ / r", "E_mech = K + U is constant if only conservative forces work; otherwise W_nc = ΔE_mech", "F_x = −dU/dx: equilibrium where dU/dx = 0 (stable at a minimum)"],
+    ["Collisions: momentum is conserved (impulses are internal)", "Elastic: kinetic energy also conserved", "1D elastic: v₁ − v₂ = −(v₁′ − v₂′)", "Totally inelastic: objects stick, maximum KE lost"],
+    ["Rotational kinetic energy K = ½Iω²", "Moment of inertia I = Σ mr² = ∫r² dm", "Parallel axis theorem: I = I_cm + Md²", "Torque τ = r × F, and τ = Iα about a fixed axis"],
+    ["Angular momentum L = r × p", "Fixed-axis rigid body: L = Iω", "τ_ext = dL/dt; no external torque means L is conserved", "Angular impulse ∫τ dt = ΔL"],
+    ["Rolling without slipping: v_cm = Rω, contact point at rest", "K = ½Mv_cm² + ½I_cm ω²", "Use both F = Ma_cm and τ_cm = I_cm α", "L = R_cm × P + L_cm (orbital + spin)"]
+  ];
   var IDEAS = [
-    "Vector decomposition: an arrow rotating while its x and y components grow and shrink.",
-    "Projectile with live velocity arrows, or the braking car's x(t), v(t), a(t) graphs drawn together.",
+    "An arrow rotating while its x and y components grow and shrink.",
+    "Projectile with live velocity arrows, or x(t), v(t), a(t) graphs drawn together.",
     "Free-body diagram builder for blocks, ramps and pulleys.",
     "Uniform circular motion with v and a vectors, then the banked turn.",
-    "Falling with drag: terminal velocity curves, low speed vs. high speed.",
-    "Bouncing ball impulse, or a thrown hammer whose center of mass follows a clean parabola.",
-    "Rocket equation: watch velocity climb as mass burns off.",
+    "Falling with drag: terminal velocity, low speed vs. high speed.",
+    "A thrown hammer whose center of mass follows a clean parabola.",
+    "Rocket equation: velocity climbing as mass burns off.",
     "Work as the area under F(x), filling in as the object moves.",
-    "Potential energy diagram with a ball rolling inside it, turning points marked.",
-    "Elastic collision shown in the lab frame and center-of-mass frame side by side.",
-    "Race down a ramp: hoop vs. disc vs. sphere, explained by moment of inertia.",
-    "Spinning skater pulling arms in: angular momentum conserved, ω jumps.",
-    "Cycloid traced by a point on a rolling wheel, or gyroscope precession."
+    "A ball rolling inside a potential energy curve, turning points marked.",
+    "An elastic collision in the lab frame and CM frame side by side.",
+    "Hoop vs. disc vs. sphere racing down a ramp.",
+    "A spinning skater pulling in their arms: L conserved, ω jumps.",
+    "The cycloid traced by a point on a rolling wheel."
   ];
 
   /* ---------- helpers ---------- */
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-  function mins(sec) { return Math.round(sec / 60); }
-  function fmtMin(m) { if (m < 60) return m + " min"; var h = Math.floor(m / 60), r = m % 60; return h + "h" + (r ? " " + r + "m" : ""); }
-  function fmtDur(sec) { if (!sec) return "text"; var m = Math.floor(sec / 60), s = sec % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
-  function unitLabel(u) { return "W" + u.n; }
-  function itemUrl(u, it, sec) { return sec.kind === "pset" ? OCW + "resources/" + sec.res + "/" : OCW + "pages/" + u.slug + "/" + it.id + "/"; }
-  function chapterUrl(n) { return OCW + "resources/mit8_01scs22_chapter" + n + "/"; }
-  // LEARN: items with no video (text pages, demos, pset problems) still take time. Rough guesses.
-  function itemMinutes(it, sec) { return sec.kind === "pset" ? 25 : (it.s ? Math.max(1, mins(it.s)) : 5); }
-  function secTitle(u, sec) {
-    if (sec.kind === "lesson") return (sec.n === 0 ? "Review" : "Lesson " + sec.n) + ": " + sec.title;
-    if (sec.kind === "deep") return "Deep dive: " + sec.title;
-    if (sec.kind === "pset") return sec.title;
-    if (sec.kind === "examples") return "Week " + u.n + " worked examples";
-    return "Week " + u.n + " introduction";
-  }
+  function fmtMin(m) { if (m < 60) return m + " min"; var h = Math.floor(m / 60), r = m % 60; return h + " h" + (r ? " " + r + " min" : ""); }
+  function fmtDur(sec) { var m = Math.floor(sec / 60), s = sec % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
+  function pageUrl(u, it) { return OCW + "pages/" + u.slug + "/" + it.id + "/"; }
+  function fileUrl(f) { return OCW + f; }
+  function chapterFile(n) { for (var i = 0; i < TEXTBOOK.length; i++) if (TEXTBOOK[i].n === n) return TEXTBOOK[i].f; return "mit8_01scs22_chapter" + n + ".pdf"; }
+  function chapterTitle(n) { for (var i = 0; i < TEXTBOOK.length; i++) if (TEXTBOOK[i].n === n) return TEXTBOOK[i].t; return ""; }
+  function readId(sec) { return "read-L" + sec.n; }
+  // LEARN: rough time guesses for anything without a video length.
+  function minutesOf(it, sec) { if (sec.kind === "pset") return 25; return it.s ? Math.max(1, Math.round(it.s / 60)) : 5; }
+  function lessonItemIds(sec) { var ids = sec.items.map(function (it) { return it.id; }); if (sec.kind === "lesson" && sec.reading) ids.push(readId(sec)); return ids; }
 
-  /* ---------- edit mode ----------
-     LEARN: "?edit" in the address turns edit mode on for this browser; "?view" turns it off.
-     Opening index.html straight from the folder (file://) is always edit mode. */
+  /* ---------- edit mode ---------- */
   var q = location.search;
   try {
     if (/[?&]edit\b/.test(q)) localStorage.setItem(EDIT_KEY, "1");
@@ -402,45 +333,40 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
   if (/[?&](edit|view)\b/.test(q)) history.replaceState(null, "", location.pathname + location.hash);
 
   /* ---------- state ---------- */
-  function blank() { return { v: 1, done: {}, ideas: {}, target: 2, updated: 0 }; }
+  function blank() { return { v: 2, done: {}, ideas: {}, updated: 0 }; }
   function clean(s) {
     var b = blank();
     if (!s || typeof s !== "object") return b;
     if (s.done && typeof s.done === "object") b.done = Object.assign({}, s.done);
     if (s.ideas && typeof s.ideas === "object") b.ideas = Object.assign({}, s.ideas);
-    if (typeof s.target === "number") b.target = s.target;
     b.updated = s.updated || 0;
     return b;
   }
-  // LEARN: compare only the parts that matter, with keys sorted, so key order never fakes a change.
+  // LEARN: compare with keys sorted so a different key order never looks like a change.
   function sig(s) {
     function sorted(o) { var r = {}; Object.keys(o).sort().forEach(function (k) { if (o[k] !== "" && o[k] != null) r[k] = o[k]; }); return r; }
-    return JSON.stringify([sorted(s.done), sorted(s.ideas), s.target]);
+    return JSON.stringify([sorted(s.done), sorted(s.ideas)]);
   }
-  var BASE = clean(window.PROGRESS);      // what the website currently has
-  var state = BASE;
+  var BASE = clean(window.PROGRESS), state = clean(BASE);
   if (EDIT) {
     var local = null;
     try { local = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-    // Use this browser's copy only if it's newer than the published one.
     if (local && (local.updated || 0) >= BASE.updated) state = clean(local);
-    else state = clean(BASE);
   }
   function dirty() { return EDIT && sig(state) !== sig(BASE); }
-
-  var open = {};   // which week cards are expanded (not saved)
   function persist() {
     if (!EDIT) return;
     state.updated = Date.now();
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
     renderBanner();
   }
+  var open = {};
 
   /* ---------- saving progress.js ----------
-     LEARN: Chrome and Edge can write a file straight into a folder you pick (the File System Access API).
-     The first save asks where progress.js lives; after that it remembers. Safari falls back to a download. */
+     LEARN: Chrome and Edge can write straight into a file you pick (File System Access API) and remember it.
+     Safari downloads the file instead. */
   function fileText() {
-    var out = { v: 1, updated: state.updated || Date.now(), target: state.target, done: state.done, ideas: {} };
+    var out = { v: 2, updated: state.updated || Date.now(), done: state.done, ideas: {} };
     Object.keys(state.ideas).forEach(function (k) { if ((state.ideas[k] || "").trim()) out.ideas[k] = state.ideas[k]; });
     return "/* My progress through 8.01SC. Written by the tracker's Save button. Times are when each item was checked off. */\nwindow.PROGRESS = " + JSON.stringify(out, null, 1) + ";\n";
   }
@@ -450,230 +376,218 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
       r.onupgradeneeded = function () { r.result.createObjectStore("h"); };
       r.onerror = function () { rej(r.error); };
       r.onsuccess = function () {
-        var tx = r.result.transaction("h", mode), st = tx.objectStore("h"), req = fn(st);
+        var tx = r.result.transaction("h", mode), req = fn(tx.objectStore("h"));
         tx.oncomplete = function () { res(req && req.result); };
         tx.onerror = function () { rej(tx.error); };
       };
     });
   }
-  function note(msg) { $("save-note").textContent = msg; }
-  function saved(msg) {
-    BASE = clean(state);
-    renderBanner(msg);
-    note(msg);
-  }
-  function save() {
-    var text = fileText();
-    if (window.showSaveFilePicker) {
-      idb("readonly", function (st) { return st.get("progress"); }).catch(function () { return null; }).then(function (h) {
-        var ready = h ? h.requestPermission({ mode: "readwrite" }).then(function (p) { return p === "granted" ? h : null; }) : Promise.resolve(null);
-        return ready.then(function (handle) {
-          return handle || window.showSaveFilePicker({ suggestedName: "progress.js", types: [{ description: "JavaScript", accept: { "text/javascript": [".js"] } }] });
-        });
-      }).then(function (handle) {
-        return handle.createWritable().then(function (w) { return w.write(text).then(function () { return w.close(); }); }).then(function () {
-          idb("readwrite", function (st) { return st.put(handle, "progress"); }).catch(function () {});
-          saved("Saved progress.js. Run ./publish.sh to put it online.");
-        });
-      }).catch(function (err) {
-        if (err && err.name === "AbortError") return;
-        download(text);
-      });
-    } else download(text);
-  }
+  function saved(msg) { BASE = clean(state); renderBanner(msg); $("save-note").textContent = msg; }
   function download(text) {
     var a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
     a.download = "progress.js";
     document.body.appendChild(a); a.click(); a.remove();
-    saved("Downloaded progress.js. Move it into the repo folder (replace the old one), then run ./publish.sh.");
+    saved("Downloaded progress.js. Move it into the repo folder, then run ./publish.sh.");
+  }
+  function save() {
+    var text = fileText();
+    if (!window.showSaveFilePicker) { download(text); return; }
+    idb("readonly", function (st) { return st.get("progress"); }).catch(function () { return null; }).then(function (h) {
+      var ready = h ? h.requestPermission({ mode: "readwrite" }).then(function (p) { return p === "granted" ? h : null; }) : Promise.resolve(null);
+      return ready.then(function (handle) {
+        return handle || window.showSaveFilePicker({ suggestedName: "progress.js", types: [{ description: "JavaScript", accept: { "text/javascript": [".js"] } }] });
+      });
+    }).then(function (handle) {
+      return handle.createWritable().then(function (w) { return w.write(text).then(function () { return w.close(); }); }).then(function () {
+        idb("readwrite", function (st) { return st.put(handle, "progress"); }).catch(function () {});
+        saved("Saved progress.js. Run ./publish.sh to put it online.");
+      });
+    }).catch(function (err) { if (!err || err.name !== "AbortError") download(text); });
   }
 
-  /* ---------- derived numbers ---------- */
-  function allItems(filter) {
-    var out = [];
-    COURSE.forEach(function (u) { u.sections.forEach(function (sec) {
-      if (filter && !filter(sec)) return;
-      sec.items.forEach(function (it) { out.push({ u: u, sec: sec, it: it }); });
-    }); });
-    return out;
-  }
-  function secDone(sec) { return sec.items.every(function (it) { return state.done[it.id]; }); }
-  function unitCounts(u) {
+  /* ---------- derived ---------- */
+  function isDone(id) { return !!state.done[id]; }
+  function secDone(sec) { return lessonItemIds(sec).every(isDone); }
+  function weekCount(u) {
     var t = 0, d = 0;
-    u.sections.forEach(function (sec) { if (sec.kind === "deep") return; sec.items.forEach(function (it) { t++; if (state.done[it.id]) d++; }); });
+    u.sections.forEach(function (sec) { if (sec.kind === "deep") return; lessonItemIds(sec).forEach(function (id) { t++; if (isDone(id)) d++; }); });
     return { t: t, d: d };
   }
   function nextSection() {
-    for (var i = 0; i < COURSE.length; i++) {
-      var u = COURSE[i];
-      for (var j = 0; j < u.sections.length; j++) {
-        var sec = u.sections[j];
-        if (sec.kind === "deep") continue;   // deep dives are optional, never "next"
-        if (!secDone(sec)) return { u: u, sec: sec };
-      }
+    for (var i = 0; i < COURSE.length; i++) for (var j = 0; j < COURSE[i].sections.length; j++) {
+      var sec = COURSE[i].sections[j];
+      if (sec.kind !== "deep" && !secDone(sec)) return { u: COURSE[i], sec: sec };
     }
     return null;
   }
   function weekMinutes() {
     var since = Date.now() - 7 * 864e5, m = 0;
-    allItems().forEach(function (x) { var ts = state.done[x.it.id]; if (ts && ts > since) m += itemMinutes(x.it, x.sec); });
+    COURSE.forEach(function (u) { u.sections.forEach(function (sec) {
+      sec.items.forEach(function (it) { var ts = state.done[it.id]; if (ts && ts > since) m += minutesOf(it, sec); });
+      if (sec.reading) { var ts = state.done[readId(sec)]; if (ts && ts > since) m += 20; }
+    }); });
     return m;
   }
 
-  /* ---------- rendering ---------- */
-  function itemRow(u, sec, it, prefix) {
-    var id = prefix + it.id, done = !!state.done[it.id];
-    return '<li class="item' + (done ? " is-done" : "") + '">' +
-      '<input type="checkbox" id="' + esc(id) + '" data-item="' + esc(it.id) + '"' + (done ? " checked" : "") + (EDIT ? "" : " disabled") + '>' +
-      '<label for="' + esc(id) + '">' + esc(it.t) + '</label>' +
-      '<span class="dur">' + (sec.kind === "pset" ? "problem" : fmtDur(it.s)) + '</span>' +
-      (sec.kind === "pset" ? '<span></span>' : '<a class="go" href="' + itemUrl(u, it, sec) + '" target="_blank" rel="noopener">Open ↗</a>') +
-      '</li>';
+  /* ---------- rows ---------- */
+  function check(id, prefix) {
+    return '<input class="ck" type="checkbox" id="' + prefix + esc(id) + '" data-item="' + esc(id) + '"' + (isDone(id) ? " checked" : "") + (EDIT ? "" : " disabled") + ' aria-label="Done">';
   }
-  function readingHtml(sec) {
+  function videoRow(u, sec, it, prefix) {
+    var meta = (it.v && it.s ? '<span class="dur num">' + fmtDur(it.s) + '</span>' : '<span class="dur">' + (it.v ? "Video" : "Notes") + '</span>') +
+      (it.tr ? '<a href="' + fileUrl(it.tr) + '">Transcript</a>' : "");
+    return '<div class="row' + (isDone(it.id) ? " done" : "") + '">' + check(it.id, prefix) +
+      '<div class="t"><a href="' + pageUrl(u, it) + '">' + esc(it.t) + '</a></div><div class="m">' + meta + '</div></div>';
+  }
+  function readingRow(sec, prefix) {
     if (!sec.reading) return "";
-    var links = (sec.ch || []).map(function (n) { return '<a href="' + chapterUrl(n) + '" target="_blank" rel="noopener">Ch. ' + n + ' PDF ↗</a>'; }).join(" · ");
-    return '<p class="reading"><strong>Read:</strong> ' + esc(sec.reading.join("; ")) + (links ? " · " + links : "") + '</p>';
+    var id = readId(sec), chs = sec.ch || [];
+    var links = chs.map(function (n) { return '<a href="' + fileUrl(chapterFile(n)) + '" class="key">Ch. ' + n + ' PDF</a>'; }).join("");
+    return '<div class="row' + (isDone(id) ? " done" : "") + '">' + check(id, prefix) +
+      '<div class="t">Read: ' + esc(chs.map(function (n) { return "Ch. " + n + ", " + chapterTitle(n); }).join(" · ")) +
+      '<small>' + esc(sec.reading.join(" · ")) + '</small></div><div class="m">' + links + '</div></div>';
+  }
+  function problemRow(sec, it, prefix) {
+    return '<div class="row' + (isDone(it.id) ? " done" : "") + '">' + check(it.id, prefix) +
+      '<div class="t">' + esc(it.t) + '</div><div class="m"></div></div>';
+  }
+  function psetHeadRow(sec) {
+    return '<div class="row plain"><div class="t"><a href="' + fileUrl(sec.file) + '"><strong>' + esc(sec.title) + '</strong> (PDF)</a>' +
+      '<small>' + sec.items.length + ' problems. No official solutions are posted, so check your method against the worked examples.</small></div>' +
+      '<div class="m"><a class="key" href="' + fileUrl(sec.file) + '">Open PDF</a></div></div>';
+  }
+  function sectionBlock(u, sec, prefix) {
+    if (sec.kind === "lesson") return '<div class="group">' + sec.items.map(function (it) { return videoRow(u, sec, it, prefix); }).join("") + readingRow(sec, prefix) + '</div>';
+    if (sec.kind === "pset") return '<div class="group">' + psetHeadRow(sec) + sec.items.map(function (it) { return problemRow(sec, it, prefix); }).join("") + '</div>';
+    return '<div class="group">' + sec.items.map(function (it) { return videoRow(u, sec, it, prefix); }).join("") + '</div>';
+  }
+  function sectionLabel(u, sec) {
+    if (sec.kind === "lesson") return sec.n === 0 ? "Review · Vectors" : "Lesson " + sec.n + " · " + sec.title;
+    if (sec.kind === "examples") return "Worked examples";
+    if (sec.kind === "pset") return "Homework";
+    if (sec.kind === "deep") return "Deep dive · " + sec.title + " (optional)";
+    return "Introduction";
+  }
+  function sectionNote(sec) {
+    if (sec.kind === "lesson") return "Watch the lectures in order, then read.";
+    if (sec.kind === "examples") return "Here are the worked examples. Pause each one and try it before watching the solution.";
+    if (sec.kind === "pset") return "Here is the homework.";
+    if (sec.kind === "deep") return "Extra depth beyond the core course.";
+    return "";
   }
 
-  function renderBanner(msg) {
-    var b = $("banner");
-    if (!EDIT) { b.hidden = true; return; }
-    var d = dirty();
-    b.hidden = !d && !msg;
-    $("banner-text").textContent = d ? "You have changes the website doesn't have yet." : (msg || "");
-    $("save").hidden = !d;
+  /* ---------- render ---------- */
+  function renderProgress() {
+    var lessons = 0, ld = 0, ps = 0;
+    COURSE.forEach(function (u) { u.sections.forEach(function (s) {
+      if (s.kind === "lesson") { lessons++; if (secDone(s)) ld++; }
+      if (s.kind === "pset" && secDone(s)) ps++;
+    }); });
+    var t = 0, d = 0; COURSE.forEach(function (u) { var c = weekCount(u); t += c.t; d += c.d; });
+    var n = nextSection(), wk = n ? (n.u.n === 0 ? "Vectors review" : "Week " + n.u.n + " of 12") : "Complete";
+    $("p-left").innerHTML = "<b>" + wk + "</b> · " + ld + " of " + lessons + " lessons · " + ps + " of 12 problem sets";
+    $("p-right").textContent = fmtMin(weekMinutes()) + " in the last 7 days";
+    $("p-bar").style.width = (100 * d / Math.max(1, t)) + "%";
   }
 
-  function renderStats() {
-    var lessons = 0, lessonsDone = 0;
-    COURSE.forEach(function (u) { u.sections.forEach(function (s) { if (s.kind === "lesson") { lessons++; if (secDone(s)) lessonsDone++; } }); });
-    var vids = allItems(function (s) { return s.kind !== "pset" && s.kind !== "deep"; });
-    var vd = vids.filter(function (x) { return state.done[x.it.id]; }).length;
-    var ps = COURSE.filter(function (u) { return u.sections.some(function (s) { return s.kind === "pset" && secDone(s); }); }).length;
-    $("stats").innerHTML =
-      '<div class="stat"><b>' + lessonsDone + '/' + lessons + '</b><span>lessons complete</span></div>' +
-      '<div class="stat"><b>' + Math.round(100 * vd / Math.max(1, vids.length)) + '%</b><span>of videos and pages</span></div>' +
-      '<div class="stat"><b>' + ps + '/12</b><span>problem sets</span></div>' +
-      '<div class="stat"><b>' + PROJECTS.length + '</b><span>projects built</span></div>';
-  }
-
-  function renderNext() {
-    var n = nextSection(), el = $("next");
-    $("next-h").textContent = EDIT ? "Next up" : "Currently working on";
-    $("next-aside").textContent = EDIT ? "No due dates. It picks up wherever you left off." : "Self-paced, no due dates.";
-    if (!n) { el.innerHTML = '<div class="done-all"><strong>All 12 weeks done.</strong> That is the full 8.01. Next stop: 8.02, Electricity and Magnetism.</div>'; return; }
-    var left = n.sec.items.filter(function (it) { return !state.done[it.id]; });
-    var m = left.reduce(function (a, it) { return a + itemMinutes(it, n.sec); }, 0);
+  function renderNow() {
+    var n = nextSection(), el = $("now");
+    $("now-sub").textContent = EDIT ? "Picks up wherever you left off. No due dates." : "What I'm working on right now.";
+    if (!n) { el.innerHTML = '<div class="now-head"><h3>All 12 weeks complete.</h3><p>Next: 8.02, Electricity and Magnetism.</p></div>'; return; }
+    var ids = lessonItemIds(n.sec), left = ids.filter(function (id) { return !isDone(id); }).length;
+    var mins = n.sec.items.reduce(function (a, it) { return a + (isDone(it.id) ? 0 : minutesOf(it, n.sec)); }, 0) + (n.sec.reading && !isDone(readId(n.sec)) ? 20 : 0);
     var where = n.u.n === 0 ? "Before Week 1" : "Week " + n.u.n + " · " + n.u.title;
-    var first = left[0];
-    var openHref = itemUrl(n.u, first, n.sec);
-    el.innerHTML =
-      '<div class="next-top"><div class="where">' + esc(where) + '</div>' +
-      '<h3>' + esc(secTitle(n.u, n.sec)) + '</h3>' +
-      '<div class="meta"><span class="num">' + left.length + '</span> ' + (n.sec.kind === "pset" ? "problems" : "items") + ' left · about ' + fmtMin(m) + (n.sec.kind === "lesson" ? " plus reading" : "") + '</div>' +
-      readingHtml(n.sec) + '</div>' +
-      '<ul class="next-list">' + left.slice(0, 4).map(function (it) { return itemRow(n.u, n.sec, it, "n-"); }).join("") +
-      (left.length > 4 ? '<li class="item"><span></span><span class="reading">+ ' + (left.length - 4) + ' more in the week card below</span></li>' : "") + '</ul>' +
-      (EDIT ? '<div class="next-actions">' +
-        '<a class="btn primary" href="' + openHref + '" target="_blank" rel="noopener">' + (n.sec.kind === "pset" ? "Open problem set ↗" : "Start: " + esc(first.t.replace(/^[\w.]+\s/, "")) + " ↗") + '</a>' +
-        '<button class="btn" type="button" data-finish="' + esc(n.u.n + ":" + n.u.sections.indexOf(n.sec)) + '">Mark all done</button>' +
-        '</div>' : "");
+    var title = n.sec.kind === "lesson" ? (n.sec.n === 0 ? "Vectors review" : "Lesson " + n.sec.n + ": " + n.sec.title) : n.sec.kind === "pset" ? n.sec.title : n.sec.kind === "examples" ? "Worked examples" : "Week " + n.u.n + " introduction";
+    var html = '<div class="now-head"><div class="where">' + esc(where) + '</div><h3>' + esc(title) + '</h3><p>' + left + ' left · about ' + fmtMin(mins) + '. ' + esc(sectionNote(n.sec)) + '</p></div>';
+    var rows = n.sec.kind === "pset" ? psetHeadRow(n.sec) + n.sec.items.map(function (it) { return problemRow(n.sec, it, "n-"); }).join("")
+      : n.sec.items.map(function (it) { return videoRow(n.u, n.sec, it, "n-"); }).join("") + readingRow(n.sec, "n-");
+    html += rows;
+    if (EDIT) html += '<div class="now-actions"><button class="btn primary" type="button" data-finish="' + n.u.n + ":" + n.u.sections.indexOf(n.sec) + '">Mark all done</button></div>';
+    el.innerHTML = html;
   }
 
-  function renderPace() {
-    var m = weekMinutes(), t = state.target, lo = Math.max(0, t - 0.5) * 60, hi = (t + 0.5) * 60, max = (t + 1.5) * 60;
-    var msg = !EDIT ? "Estimated from what was checked off" : m === 0 ? "Fresh week. Next up is waiting." : m >= hi ? "Above target. Make sure school and sleep get their share too." : m >= lo ? "Right on target." : "Some progress. Any session counts.";
-    $("pace").innerHTML =
-      '<div class="label"><strong class="num">' + fmtMin(m) + '</strong> in the last 7 days<small>' + (EDIT ? "Target about " + t + "h · " : "") + msg + '</small></div>' +
-      '<div class="meter" aria-hidden="true"><span class="band" style="left:' + (100 * lo / max) + '%;width:' + (100 * (hi - lo) / max) + '%"></span><i style="width:' + Math.min(100, 100 * m / max) + '%"></i></div>';
+  var CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  function renderWeeks() {
+    var n = nextSection(), cur = n ? n.u.n : -1;
+    $("weeks").innerHTML = COURSE.map(function (u) {
+      var c = weekCount(u), complete = c.t && c.d === c.t, isOpen = open[u.n] !== undefined ? open[u.n] : false;
+      var body = '<div class="label">Key ideas</div><ul class="group ideas">' + KEY_IDEAS[u.n].map(function (k) { return '<li>' + esc(k) + '</li>'; }).join("") + '</ul>';
+      u.sections.forEach(function (sec) {
+        if (sec.kind === "intro") return;
+        var note = sectionNote(sec);
+        body += '<div class="label">' + esc(sectionLabel(u, sec)) + '</div>' + (sec.kind === "lesson" ? "" : (note ? '<p class="note">' + esc(note) + '</p>' : "")) + sectionBlock(u, sec, "w-");
+      });
+      var intro = u.sections.filter(function (s) { return s.kind === "intro"; })[0];
+      if (intro) body = '<div class="label">Introduction</div>' + sectionBlock(u, intro, "w-") + body;
+      var txt = (state.ideas[u.n] || "").trim();
+      if (EDIT) body += '<div class="label"><label for="idea-' + u.n + '">Sim idea</label></div><textarea id="idea-' + u.n + '" data-idea="' + u.n + '" rows="2" placeholder="' + esc("e.g. " + IDEAS[u.n]) + '">' + esc(state.ideas[u.n] || "") + '</textarea>';
+      else if (txt) body += '<div class="label">Sim idea</div><p class="idea-text">' + esc(txt) + '</p>';
+      return '<details class="week' + (complete ? " complete" : "") + '" id="week-' + u.n + '" data-week="' + u.n + '"' + (isOpen ? " open" : "") + '>' +
+        '<summary><span class="wn">' + (u.n === 0 ? "Review" : "Week " + u.n) + '</span><span class="wt">' + esc(u.title) + (u.n === cur ? ' <span class="chip">Now</span>' : "") + '</span>' +
+        '<span class="wc">' + (complete ? "Done" : c.d + "/" + c.t) + '</span>' + CHEV + '</summary>' +
+        '<div class="wbody">' + body + '</div></details>';
+    }).join("");
   }
 
   function renderProjects() {
     var el = $("projects");
-    if (!PROJECTS.length) {
-      el.innerHTML = '<div class="empty"><strong>First sim coming soon.</strong> Each week has a sim idea below. Finished ones get their own folder in <code>sims/</code> and a card here.</div>';
-      return;
-    }
+    if (!PROJECTS.length) { el.innerHTML = '<div class="empty">No projects yet. The first sim lands after Week 1.</div>'; return; }
     el.innerHTML = '<div class="projects">' + PROJECTS.map(function (p) {
       var inner = (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : "") +
-        '<span class="tag">' + esc(p.week ? "Week " + p.week : "8.01") + (p.status ? " · " + esc(p.status) : "") + '</span>' +
+        '<span class="k">' + esc(p.week ? "Week " + p.week : "8.01") + (p.status ? " · " + esc(p.status) : "") + '</span>' +
         '<h3>' + esc(p.title) + '</h3>' + (p.desc ? '<p>' + esc(p.desc) + '</p>' : "");
       return p.link ? '<a class="proj" href="' + esc(p.link) + '">' + inner + '</a>' : '<div class="proj">' + inner + '</div>';
     }).join("") + '</div>';
   }
 
-  function renderUnits() {
-    var nx = nextSection(), cur = nx ? nx.u.n : -1;
-    $("strip").innerHTML = COURSE.map(function (u) {
-      var c = unitCounts(u), p = c.t ? c.d / c.t : 0;
-      return '<a href="#unit-' + u.n + '" data-jump="' + u.n + '" class="' + (u.n === cur ? "current" : "") + '" title="' + esc(unitLabel(u) + " " + u.title + ": " + c.d + " of " + c.t) + '">' +
-        '<div class="cell"><i style="height:' + (p * 100) + '%"></i></div><div class="lbl">' + (u.n === 0 ? "V" : u.n) + '</div></a>';
-    }).join("");
+  function renderRef() {
+    var chapters = TEXTBOOK.filter(function (c) { return c.n; }), extras = TEXTBOOK.filter(function (c) { return !c.n; });
+    var half = Math.ceil(chapters.length / 2);
+    function list(cs) { return '<div class="group">' + cs.map(function (c) { return '<div class="row plain"><div class="t"><a href="' + fileUrl(c.f) + '"><span class="ch">' + c.n + '</span>' + esc(c.t) + '</a></div></div>'; }).join("") + '</div>'; }
+    var ex = '<div class="group">' + extras.map(function (c) { return '<div class="row plain"><div class="t"><a href="' + fileUrl(c.f) + '">' + esc(c.t) + '</a></div></div>'; }).join("") +
+      '<div class="row plain"><div class="t"><a href="' + OCW + '">Full course on MIT OpenCourseWare</a></div></div></div>';
+    $("ref").innerHTML = '<div>' + list(chapters.slice(0, half)) + '</div><div>' + list(chapters.slice(half)) + '<div class="label" style="margin-top:22px">Also</div>' + ex + '</div>';
+  }
 
-    $("units").innerHTML = COURSE.map(function (u) {
-      var c = unitCounts(u), complete = c.t && c.d === c.t;
-      var isOpen = open[u.n] !== undefined ? open[u.n] : u.n === cur;
-      var vid = 0; u.sections.forEach(function (s) { if (s.kind !== "deep" && s.kind !== "pset") s.items.forEach(function (it) { vid += it.s; }); });
-      var body = u.sections.map(function (sec, si) {
-        var head = '<h4><span class="k">' + (sec.kind === "lesson" ? (sec.n === 0 ? "Review" : "L" + sec.n) : sec.kind === "pset" ? "PSet" : sec.kind === "deep" ? "Deep" : sec.kind === "examples" ? "Examples" : "Intro") + '</span>' +
-          esc(sec.kind === "lesson" ? sec.title : secTitle(u, sec)) + (sec.kind === "deep" ? ' <span class="opt">Optional</span>' : "") + '</h4>';
-        var extra = sec.kind === "pset" ? '<p class="reading"><a href="' + OCW + "resources/" + sec.res + '/" target="_blank" rel="noopener">Problem Set ' + sec.n + ' PDF ↗</a></p>' : readingHtml(sec);
-        return '<div class="sec">' + head + extra + '<ul class="items">' + sec.items.map(function (it) { return itemRow(u, sec, it, "u-"); }).join("") + '</ul></div>';
-      }).join("");
-      var txt = (state.ideas[u.n] || "").trim(), idea = "";
-      if (EDIT) idea = '<div class="idea"><label for="idea-' + u.n + '"><b>Sim idea</b>What could you animate in Manim from this week?</label>' +
-        '<textarea id="idea-' + u.n + '" data-idea="' + u.n + '" rows="2" placeholder="' + esc("e.g. " + IDEAS[u.n]) + '">' + esc(state.ideas[u.n] || "") + '</textarea></div>';
-      else if (txt) idea = '<div class="idea"><label><b>Sim idea</b></label><p class="idea-text">' + esc(txt) + '</p></div>';
-      return '<details class="unit' + (complete ? " complete" : "") + '" id="unit-' + u.n + '" data-unit="' + u.n + '"' + (isOpen ? " open" : "") + '>' +
-        '<summary><span class="wk">' + (complete ? "✓ " : "") + unitLabel(u) + '</span>' +
-        '<span class="utitle">' + esc(u.n === 0 ? "Review: Vectors" : u.title) + '<span class="usub">' + fmtMin(mins(vid)) + ' of video' + (u.n ? " · Problem Set " + u.n : "") + '</span></span>' +
-        '<span class="uprog"><span class="num">' + c.d + '/' + c.t + '</span><span class="meter"><i style="width:' + (c.t ? 100 * c.d / c.t : 0) + '%"></i></span></span></summary>' +
-        '<div class="ubody">' + body + idea + '</div></details>';
-    }).join("");
+  function renderBanner(msg) {
+    if (!EDIT) return;
+    var d = dirty();
+    $("banner").hidden = !d && !msg;
+    $("banner-text").textContent = d ? "You have changes the website doesn't have yet." : (msg || "");
+    $("save").hidden = !d;
   }
 
   function render() {
     var activeId = document.activeElement && document.activeElement.id;
-    renderStats(); renderNext(); renderPace(); renderProjects(); renderUnits(); renderBanner();
-    $("target").value = String(state.target);
+    renderProgress(); renderNow(); renderWeeks(); renderProjects(); renderBanner();
     if (activeId && $(activeId)) { try { $(activeId).focus({ preventScroll: true }); } catch (e) {} }
   }
 
   /* ---------- events ----------
-     LEARN: "event delegation" = one listener on the whole page instead of one per checkbox.
-     It keeps working after render() replaces the HTML. */
+     LEARN: one listener on the whole page ("event delegation") keeps working after render() rebuilds the HTML. */
   document.addEventListener("change", function (e) {
     var t = e.target;
-    if (!EDIT) return;
-    if (t.dataset && t.dataset.item) {
-      if (t.checked) state.done[t.dataset.item] = Date.now(); else delete state.done[t.dataset.item];
-      persist(); render();
-    } else if (t.id === "target") {
-      state.target = Number(t.value) || 2; persist(); renderPace();
-    }
+    if (!EDIT || !t.dataset || !t.dataset.item) return;
+    if (t.checked) state.done[t.dataset.item] = Date.now(); else delete state.done[t.dataset.item];
+    persist(); render();
   });
   document.addEventListener("click", function (e) {
     var f = e.target.closest && e.target.closest("[data-finish]");
-    if (f && EDIT) {
-      var p = f.dataset.finish.split(":"), u = COURSE[+p[0]], sec = u.sections[+p[1]], now = Date.now();
-      sec.items.forEach(function (it) { if (!state.done[it.id]) state.done[it.id] = now; });
-      persist(); render(); return;
-    }
-    var j = e.target.closest && e.target.closest("[data-jump]");
-    if (j) { open[+j.dataset.jump] = true; var d = $("unit-" + j.dataset.jump); if (d) d.open = true; }
+    if (!f || !EDIT) return;
+    var p = f.dataset.finish.split(":"), sec = COURSE[+p[0]].sections[+p[1]], now = Date.now();
+    lessonItemIds(sec).forEach(function (id) { if (!state.done[id]) state.done[id] = now; });
+    persist(); render();
   });
   document.addEventListener("toggle", function (e) {
-    var d = e.target; if (d.dataset && d.dataset.unit !== undefined) open[+d.dataset.unit] = d.open;
+    var d = e.target; if (d.dataset && d.dataset.week !== undefined) open[+d.dataset.week] = d.open;
   }, true);
   var ideaTimer = null;
   document.addEventListener("input", function (e) {
     var t = e.target;
-    if (EDIT && t.dataset && t.dataset.idea !== undefined) {
-      state.ideas[t.dataset.idea] = t.value;
-      clearTimeout(ideaTimer); ideaTimer = setTimeout(persist, 500);
-    }
+    if (!EDIT || !t.dataset || t.dataset.idea === undefined) return;
+    state.ideas[t.dataset.idea] = t.value;
+    clearTimeout(ideaTimer); ideaTimer = setTimeout(persist, 500);
   });
   $("save").addEventListener("click", save);
   $("save2").addEventListener("click", save);
@@ -683,48 +597,26 @@ footer p { margin: 0 0 6px; max-width: 70ch; }
     armed = false; e.target.textContent = "Undo unsaved changes";
     state = clean(BASE);
     try { localStorage.removeItem(KEY); } catch (err) {}
-    render(); note("Back to what the website has.");
+    render(); $("save-note").textContent = "Back to what the website has.";
   });
 
-  /* ---------- light / dark toggle ----------
-     LEARN: the choice is saved under "theme", the same key my logbook uses, so both sites match. */
-  function themeLabel() { $("theme-label").textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "Light" : "Dark"; $("theme").setAttribute("aria-label", "Switch to " + $("theme-label").textContent.toLowerCase() + " mode"); }
+  /* ---------- light / dark ---------- */
+  function themeLabel() {
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "Light" : "Dark";
+    $("theme-label").textContent = next;
+    $("theme").setAttribute("aria-label", "Switch to " + next.toLowerCase() + " mode");
+  }
   $("theme").addEventListener("click", function () {
     var root = document.documentElement, next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
     root.setAttribute("data-theme", next);
     try { localStorage.setItem("theme", next); } catch (e) {}
     themeLabel();
   });
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
-    var saved = null; try { saved = localStorage.getItem("theme"); } catch (err) {}
-    if (!saved) { document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light"); themeLabel(); }
-  });
 
-  /* ---------- hero drawing: projectile, equal time steps, velocity vectors ---------- */
-  function drawTrajectory() {
-    var svg = $("traj"), x0 = 22, y0 = 148, vx = 26, vy = -56, g = 7, out = [];
-    out.push('<line class="ax" x1="14" y1="148" x2="252" y2="148"/><line class="ax" x1="22" y1="156" x2="22" y2="14"/>');
-    out.push('<text x="244" y="162">x</text><text x="8" y="20">y</text>');
-    var d = "M" + x0 + " " + y0;
-    for (var s = 0.1; s <= 8.01; s += 0.1) d += " L" + (x0 + vx * s).toFixed(1) + " " + (y0 + vy * s + g * s * s).toFixed(1);
-    out.push('<path class="path" d="' + d + '"/>');
-    for (var t = 0; t <= 8; t++) {
-      var x = x0 + vx * t, y = y0 + vy * t + g * t * t, ux = vx * 0.55, uy = (vy + 2 * g * t) * 0.55;
-      out.push('<circle class="dot" cx="' + x + '" cy="' + y + '" r="2.6"/>');
-      if (t % 2 === 0 && t < 8) {
-        var ex = x + ux, ey = y + uy, ang = Math.atan2(uy, ux), h = 5;
-        out.push('<line class="vec" x1="' + x + '" y1="' + y + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>');
-        out.push('<path class="head" d="M' + ex.toFixed(1) + ' ' + ey.toFixed(1) + ' L' + (ex - h * Math.cos(ang - .45)).toFixed(1) + ' ' + (ey - h * Math.sin(ang - .45)).toFixed(1) + ' L' + (ex - h * Math.cos(ang + .45)).toFixed(1) + ' ' + (ey - h * Math.sin(ang + .45)).toFixed(1) + 'Z"/>');
-      }
-    }
-    out.push('<text x="150" y="16">v at equal Δt</text>');
-    svg.innerHTML = out.join("");
-  }
-
-  if (EDIT) { $("mode").hidden = false; $("settings").hidden = false; }
+  if (EDIT) { $("mode").hidden = false; $("edit-row").hidden = false; }
   else document.body.classList.add("viewer");
   themeLabel();
-  drawTrajectory();
+  renderRef();
   render();
 })();
 </script>
