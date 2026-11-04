@@ -12,6 +12,8 @@ My self-paced run through [MIT OpenCourseWare 8.01SC Classical Mechanics](https:
 | `course-data.js` | All 37 lessons, readings and 12 problem sets, generated from the OCW course download |
 | `progress.js` | What I've finished. The public page reads this file. |
 | `projects.js` | The projects listed on the page |
+| `formulas.js` | Formula sheet, symbol key and weekly key ideas, written in LaTeX |
+| `vendor/katex/` | [KaTeX](https://katex.org) (MIT license), which typesets the LaTeX |
 | `sims/` | One folder per simulation or project |
 | `publish.sh` | Commits and pushes changes |
 

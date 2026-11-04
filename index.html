@@ -9,6 +9,8 @@
   course-data.js  every lesson, video, reading, worked example and problem set, generated from the OCW download
   progress.js     what I've finished. The public site reads this file.
   projects.js     the sims and projects listed on the page
+  formulas.js     formula sheet, symbol key and each week's key ideas, in LaTeX
+  vendor/katex/   KaTeX, which turns the LaTeX into typeset math
   publish.sh      commits and pushes changes
 
   EDIT MODE
@@ -24,6 +26,8 @@
   <title>8.01 Classical Mechanics · Jared Bridgewater</title>
   <meta name="description" content="Where I am in MIT OCW 8.01SC Classical Mechanics, with every video, reading and problem set, and the simulations I build from it.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <!-- LEARN: KaTeX draws LaTeX math in the browser. It lives in vendor/ so the page never depends on another site. -->
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <!-- LEARN: runs before the page draws so it never flashes the wrong theme. Same "theme" key as my logbook. -->
   <script>
     (function () {
@@ -174,6 +178,35 @@ a.proj:hover { text-decoration: none; filter: brightness(.98); }
 .refgrid .group + .group { margin-top: 0; }
 .ch { color: var(--ink-3); font-variant-numeric: tabular-nums; margin-right: 8px; }
 
+/* ---------- jump bar ---------- */
+.jump { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 4; background: color-mix(in srgb, var(--bg) 85%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--sep); }
+.jump .wrap { display: flex; gap: 6px; padding-block: 10px; overflow-x: auto; scrollbar-width: none; }
+.jump .wrap::-webkit-scrollbar { display: none; }
+.jump a { flex: none; font-size: 14px; color: var(--ink); background: var(--fill); border-radius: 999px; padding: 6px 14px; }
+.jump a:hover { text-decoration: none; filter: brightness(.96); }
+section { scroll-margin-top: 64px; }
+
+/* ---------- math ---------- */
+.katex { font-size: 1.08em; }
+.ideas .katex { font-size: 1.12em; }
+.ideas li { line-height: 1.9; }
+.fgrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; align-items: start; }
+.fgrid .group + .group { margin-top: 0; }
+.fhead { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 16px 6px; }
+.fhead h3 { margin: 0; font-size: 17px; }
+.fhead span { font-size: 13px; color: var(--ink-3); }
+.frow { padding: 10px 16px; border-top: 1px solid var(--sep); display: grid; gap: 2px; }
+.frow .eq { overflow-x: auto; overflow-y: hidden; padding: 2px 0; white-space: nowrap; }
+.frow .eq .katex, .frow .eq .katex * { white-space: nowrap; }
+.frow .eq .katex { font-size: 1.15em; }
+.frow small { font-size: 13px; color: var(--ink-3); }
+.keytable { width: 100%; border-collapse: collapse; font-size: 15px; }
+.keytable th { text-align: left; font-size: 12px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; padding: 12px 16px 8px; }
+.keytable td { padding: 9px 16px; border-top: 1px solid var(--sep); vertical-align: top; }
+.keytable td:first-child { white-space: nowrap; width: 1%; }
+.keytable td:last-child { color: var(--ink-2); white-space: nowrap; }
+.scroll-x { overflow-x: auto; }
+
 footer { padding-block: 56px 48px; font-size: 13px; color: var(--ink-3); }
 footer p { margin: 0 0 6px; }
 .edit-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
@@ -182,7 +215,7 @@ footer p { margin: 0 0 6px; }
 @media (max-width: 640px) {
   .hero { padding-top: 32px; }
   details.week > summary { grid-template-columns: 52px minmax(0,1fr) auto 12px; gap: 8px; }
-  .refgrid { grid-template-columns: 1fr; }
+  .refgrid, .fgrid { grid-template-columns: 1fr; }
   .row .m .dur { display: none; }
   .brand span { display: none; }
 }
@@ -212,6 +245,17 @@ footer p { margin: 0 0 6px; }
   </div>
 </header>
 
+<nav class="jump" aria-label="Jump to section">
+  <div class="wrap">
+    <a href="#now-h">Now</a>
+    <a href="#weeks-h">Weeks</a>
+    <a href="#formulas">Formula sheet</a>
+    <a href="#key">Symbol key</a>
+    <a href="#ref-h">Textbook</a>
+    <a href="#proj-h">Projects</a>
+  </div>
+</nav>
+
 <main class="wrap">
   <div class="hero">
     <p class="eyebrow">MIT 8.01SC · Self-study</p>
@@ -233,6 +277,22 @@ footer p { margin: 0 0 6px; }
     <h2 id="weeks-h">Weeks</h2>
     <p class="sub">Each week: key ideas, lectures, readings, worked examples, and the problem set.</p>
     <div class="group" id="weeks"></div>
+  </section>
+
+  <section aria-labelledby="formulas-h" id="formulas">
+    <h2 id="formulas-h">Formula sheet</h2>
+    <p class="sub">Everything from the 12 weeks on one page. It covers the same mechanics as the <a href="https://apcentral.collegeboard.org/media/pdf/ap-physics-c-mechanics-equations-sheet.pdf">AP Physics C: Mechanics equation sheet</a>, written to match this course's notation.</p>
+    <div class="fgrid" id="fsheet"></div>
+    <div class="label" style="margin-top:28px">Constants</div>
+    <div class="group" id="consts"></div>
+    <div class="label" style="margin-top:28px">Also on the AP Physics C sheet (8.01 notes, Ch. 23–25)</div>
+    <div class="group" id="fextra"></div>
+  </section>
+
+  <section aria-labelledby="key-h" id="key">
+    <h2 id="key-h">Symbol key</h2>
+    <p class="sub">What each letter means and its SI unit. Arrows mark vectors; the same letter without an arrow is its magnitude.</p>
+    <div class="group scroll-x" id="symbols"></div>
   </section>
 
   <section aria-labelledby="proj-h">
@@ -264,6 +324,8 @@ footer p { margin: 0 0 6px; }
 <script src="course-data.js"></script>
 <script src="progress.js"></script>
 <script src="projects.js"></script>
+<script src="formulas.js"></script>
+<script src="vendor/katex/katex.min.js"></script>
 <script>
 /* =================================================================
    LEARN: THE PLAN
@@ -276,22 +338,7 @@ footer p { margin: 0 0 6px; }
   var OCW = "https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/";
   var KEY = "tracker801", EDIT_KEY = "tracker801-edit";
 
-  /* The core results of each week, in my own summary. Index = week number (0 = vectors review). */
-  var KEY_IDEAS = [
-    ["A = Aₓ î + A_y ĵ, with Aₓ = |A| cos θ and A_y = |A| sin θ", "|A| = √(Aₓ² + A_y²)", "Vectors add component by component"],
-    ["v = dx/dt, a = dv/dt", "Constant a: x(t) = x₀ + v₀t + ½at², v(t) = v₀ + at", "Going backwards: v(t) = v₀ + ∫a dt, x(t) = x₀ + ∫v dt", "Projectiles: x and y are independent; only y accelerates (−g)"],
-    ["Newton's 2nd law: F_net = m a, one equation per direction", "Newton's 3rd law: F_A on B = −F_B on A", "Gravity: F = G m₁m₂ / r², so g = GM_E / R_E²", "Friction: f_s ≤ μ_s N, f_k = μ_k N. Springs: F = −kx"],
-    ["Arc length s = Rθ, speed v = Rω, period T = 2π/ω", "Centripetal acceleration a_r = v²/R = Rω², pointing to the center", "Tangential acceleration a_t = Rα", "The net inward force supplies m v²/R; it is never a separate force"],
-    ["Constraint conditions: a fixed rope length links the accelerations", "Massive rope: tension varies, found with a differential element dm", "Drag: F = −bv at low speed, F = −½CρAv² at high speed", "Terminal velocity: drag balances gravity"],
-    ["Momentum p = mv; impulse J = ∫F dt = Δp", "F_ext = dP_sys/dt; internal forces cancel in pairs", "No external force in a direction: momentum conserved in that direction", "Center of mass R_cm = Σ mᵢrᵢ / M, and F_ext = M A_cm"],
-    ["Relative velocity: v_ground = v_relative + v_frame", "Recoil: momentum before = momentum after", "Rocket: M dv/dt = F_ext + u_rel dM/dt", "No external force: Δv = u ln(m_i / m_f)"],
-    ["Kinetic energy K = ½mv²", "Work W = ∫F · dr (dot product: only the force along the motion counts)", "Work–energy theorem: W_net = ΔK", "Power P = dW/dt = F · v. Conservative forces: work is path-independent"],
-    ["ΔU = −∫F · dr for a conservative force", "U = mgy, U = ½kx², U = −G m₁m₂ / r", "E_mech = K + U is constant if only conservative forces work; otherwise W_nc = ΔE_mech", "F_x = −dU/dx: equilibrium where dU/dx = 0 (stable at a minimum)"],
-    ["Collisions: momentum is conserved (impulses are internal)", "Elastic: kinetic energy also conserved", "1D elastic: v₁ − v₂ = −(v₁′ − v₂′)", "Totally inelastic: objects stick, maximum KE lost"],
-    ["Rotational kinetic energy K = ½Iω²", "Moment of inertia I = Σ mr² = ∫r² dm", "Parallel axis theorem: I = I_cm + Md²", "Torque τ = r × F, and τ = Iα about a fixed axis"],
-    ["Angular momentum L = r × p", "Fixed-axis rigid body: L = Iω", "τ_ext = dL/dt; no external torque means L is conserved", "Angular impulse ∫τ dt = ΔL"],
-    ["Rolling without slipping: v_cm = Rω, contact point at rest", "K = ½Mv_cm² + ½I_cm ω²", "Use both F = Ma_cm and τ_cm = I_cm α", "L = R_cm × P + L_cm (orbital + spin)"]
-  ];
+  var KEY_IDEAS = window.KEY_IDEAS || [];
   var IDEAS = [
     "An arrow rotating while its x and y components grow and shrink.",
     "Projectile with live velocity arrows, or x(t), v(t), a(t) graphs drawn together.",
@@ -311,6 +358,12 @@ footer p { margin: 0 0 6px; }
   /* ---------- helpers ---------- */
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  // LEARN: tex() typesets one LaTeX string; rich() typesets the $...$ parts of a sentence and escapes the rest.
+  function tex(s, display) {
+    if (!window.katex) return '<code>' + esc(s) + '</code>';
+    try { return katex.renderToString(s, { displayMode: !!display, throwOnError: false }); } catch (e) { return '<code>' + esc(s) + '</code>'; }
+  }
+  function rich(s) { return String(s).split(/(\$[^$]+\$)/).map(function (part) { return part.charAt(0) === "$" && part.length > 1 ? tex(part.slice(1, -1)) : esc(part); }).join(""); }
   function fmtMin(m) { if (m < 60) return m + " min"; var h = Math.floor(m / 60), r = m % 60; return h + " h" + (r ? " " + r + " min" : ""); }
   function fmtDur(sec) { var m = Math.floor(sec / 60), s = sec % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
   function pageUrl(u, it) { return OCW + "pages/" + u.slug + "/" + it.id + "/"; }
@@ -512,7 +565,7 @@ footer p { margin: 0 0 6px; }
     var n = nextSection(), cur = n ? n.u.n : -1;
     $("weeks").innerHTML = COURSE.map(function (u) {
       var c = weekCount(u), complete = c.t && c.d === c.t, isOpen = open[u.n] !== undefined ? open[u.n] : false;
-      var body = '<div class="label">Key ideas</div><ul class="group ideas">' + KEY_IDEAS[u.n].map(function (k) { return '<li>' + esc(k) + '</li>'; }).join("") + '</ul>';
+      var body = '<div class="label">Key ideas</div><ul class="group ideas">' + (KEY_IDEAS[u.n] || []).map(function (k) { return '<li>' + rich(k) + '</li>'; }).join("") + '</ul>';
       u.sections.forEach(function (sec) {
         if (sec.kind === "intro") return;
         var note = sectionNote(sec);
@@ -550,6 +603,23 @@ footer p { margin: 0 0 6px; }
     $("ref").innerHTML = '<div>' + list(chapters.slice(0, half)) + '</div><div>' + list(chapters.slice(half)) + '<div class="label" style="margin-top:22px">Also</div>' + ex + '</div>';
   }
 
+  function renderFormulas() {
+    function row(r) { return '<div class="frow"><div class="eq">' + tex(r[0]) + '</div><small>' + esc(r[1]) + '</small></div>'; }
+    var F = window.FORMULAS || [], half = Math.ceil(F.length / 2);
+    function col(groups) { return '<div>' + groups.map(function (g) { return '<div class="group" style="margin-bottom:16px"><div class="fhead"><h3>' + esc(g.t) + '</h3><span>' + esc(g.w) + '</span></div>' + g.rows.map(row).join("") + '</div>'; }).join("") + '</div>'; }
+    $("fsheet").innerHTML = col(F.slice(0, half)) + col(F.slice(half));
+    $("consts").innerHTML = (window.CONSTANTS || []).map(row).join("");
+    $("fextra").innerHTML = (window.FORMULAS_EXTRA || []).map(row).join("");
+    $("symbols").innerHTML = '<table class="keytable"><thead><tr><th>Symbol</th><th>Meaning</th><th>SI unit</th></tr></thead><tbody>' +
+      (window.SYMBOLS || []).map(function (s) { return '<tr><td>' + tex(s[0]) + '</td><td>' + esc(s[1]) + '</td><td>' + esc(s[2]) + '</td></tr>'; }).join("") + '</tbody></table>';
+  }
+
+  // LEARN: every link to another site opens in a new tab, so this page stays open.
+  // rel="noopener" stops the new tab from being able to control this one.
+  function newTabs() {
+    document.querySelectorAll('a[href^="http"]').forEach(function (a) { a.target = "_blank"; a.rel = "noopener"; });
+  }
+
   function renderBanner(msg) {
     if (!EDIT) return;
     var d = dirty();
@@ -560,7 +630,7 @@ footer p { margin: 0 0 6px; }
 
   function render() {
     var activeId = document.activeElement && document.activeElement.id;
-    renderProgress(); renderNow(); renderWeeks(); renderProjects(); renderBanner();
+    renderProgress(); renderNow(); renderWeeks(); renderProjects(); renderBanner(); newTabs();
     if (activeId && $(activeId)) { try { $(activeId).focus({ preventScroll: true }); } catch (e) {} }
   }
 
@@ -617,6 +687,7 @@ footer p { margin: 0 0 6px; }
   else document.body.classList.add("viewer");
   themeLabel();
   renderRef();
+  renderFormulas();
   render();
 })();
 </script>
