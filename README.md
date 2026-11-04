@@ -18,7 +18,7 @@ My self-paced run through [MIT OpenCourseWare 8.01SC Classical Mechanics](https:
 ## Updating progress (MacBook)
 
 1. Open the live page with `?edit` at the end of the address once. Edit mode stays on in that browser.
-2. Check things off. A red bar shows when the website is behind.
+2. Check things off. A bar at the top shows when the website is behind.
 3. Press **Save progress.js** and pick this folder's `progress.js` the first time. (Chrome writes it directly; Safari downloads it, so move it here.)
 4. In Terminal, from this folder: `./publish.sh`
 
